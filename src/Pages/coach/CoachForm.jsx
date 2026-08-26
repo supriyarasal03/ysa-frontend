@@ -14,15 +14,13 @@ import {
   ChevronDown,
   Loader2,
 } from "lucide-react";
-
 import {
   addCoach,
   updateCoach,
   getCoachById,
   viewCoachFile,
-  
- 
-} from "./coachService";
+  getAllSports,
+} from "./CoachService";
 
 // ============================================================
 // CONSTANTS
@@ -83,6 +81,7 @@ export default function CoachForm() {
     dateOfBirth: useRef(null),
     joiningDate: useRef(null),
     address: useRef(null),
+    sportId: useRef(null),
     experience: useRef(null),
     qualification: useRef(null),
     bankName: useRef(null),
@@ -104,6 +103,13 @@ export default function CoachForm() {
   const [deletingDocument, setDeletingDocument] = useState("");
   const [pageLoading, setPageLoading] = useState(isEditMode);
   const [backendErrors, setBackendErrors] = useState({});
+
+  // ==========================================================
+// SPORTS
+// ==========================================================
+
+const [sports, setSports] = useState([]);
+const [sportsLoading, setSportsLoading] = useState(false);
 
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraStream, setCameraStream] = useState(null);
@@ -137,6 +143,7 @@ export default function CoachForm() {
     address: "",
 
     // Professional
+    sportId: "",
     experience: "",
     qualification: "",
 
@@ -147,6 +154,94 @@ export default function CoachForm() {
     accountNumber: "",
     ifscCode: "",
   });
+
+
+
+
+  // ==========================================================
+// LOAD SPORTS
+// ==========================================================
+
+
+
+useEffect(() => {
+
+  const loadSports = async () => {
+
+    try {
+
+      setSportsLoading(true);
+
+      const response = await getAllSports();
+
+      // =====================================================
+      // GET SPORT LIST FROM API RESPONSE
+      // Supports:
+      // { success: true, data: [...] }
+      // OR
+      // [...]
+      // OR
+      // { data: { data: [...] } }
+      // =====================================================
+
+      const responseData =
+        response?.data ?? response;
+
+      const sportList =
+        Array.isArray(responseData)
+          ? responseData
+          : Array.isArray(responseData?.data)
+          ? responseData.data
+          : [];
+
+      // =====================================================
+      // ONLY ACTIVE SPORTS
+      // Supports both "status" and "Status"
+      // =====================================================
+
+      const activeSports = sportList.filter((sport) => {
+
+        const status =
+          sport?.status ??
+          sport?.Status ??
+          "";
+
+        return (
+          String(status)
+            .trim()
+            .toUpperCase() === "ACTIVE"
+        );
+
+      });
+
+      console.log("All sports:", sportList);
+      console.log("Active sports:", activeSports);
+
+      setSports(activeSports);
+
+    } catch (error) {
+
+      console.error(
+        "Unable to load sports:",
+        error
+      );
+
+      setSports([]);
+
+    } finally {
+
+      setSportsLoading(false);
+
+    }
+
+  };
+
+  loadSports();
+
+}, []);
+
+
+
 
 
 
@@ -324,13 +419,28 @@ if (coach.livePhotoPath) {
           gender: coach.gender || "",
           dateOfBirth: coach.dateOfBirth || "",
           joiningDate: coach.joiningDate || "",
+
+
           address: coach.address || "",
 
-          experience:
-            coach.experience !== null &&
-            coach.experience !== undefined
-              ? String(coach.experience)
-              : "",
+sportId:
+  coach.sportId !== null &&
+  coach.sportId !== undefined
+    ? String(coach.sportId)
+    : coach.sport?.id !== null &&
+      coach.sport?.id !== undefined
+    ? String(coach.sport.id)
+    : "",
+
+experience:
+  coach.experience !== null &&
+  coach.experience !== undefined
+    ? String(coach.experience)
+    : "",
+
+
+
+
 
           qualification: coach.qualification || "",
 
@@ -783,6 +893,15 @@ if (coach.livePhotoPath) {
         return "";
 
 
+        case "sportId":
+
+  if (!val) {
+    return "Sport is required";
+  }
+
+  return "";
+
+
       // -------------------------------------------------------
       // EXPERIENCE
       // -------------------------------------------------------
@@ -1196,9 +1315,10 @@ if (coach.livePhotoPath) {
       "gender",
       "dateOfBirth",
       "joiningDate",
-      "address",
-      "experience",
-      "qualification",
+     "address",
+"sportId",
+"experience",
+"qualification",
       "bankName",
       "branchName",
       "accountHolderName",
@@ -1481,10 +1601,21 @@ const resetCoachForm = () => {
       // PROFESSIONAL
       // ======================================================
 
-      payload.append(
-        "experience",
-        formData.experience
-      );
+      // ======================================================
+// PROFESSIONAL
+// ======================================================
+
+payload.append(
+  "sportId",
+  formData.sportId
+);
+
+payload.append(
+  "experience",
+  formData.experience
+);
+
+
 
       payload.append(
         "qualification",
@@ -1606,13 +1737,21 @@ const resetCoachForm = () => {
       setBackendErrors({});
       setErrors({});
 
- if (isEditMode) {
+
+
+
+if (isEditMode) {
   setSuccessMessage("Coach updated successfully.");
 
   window.scrollTo({
     top: document.body.scrollHeight,
     behavior: "smooth",
   });
+
+  setTimeout(() => {
+    navigate("/admin/coach-managmnet");
+  }, 2000);
+
 } else {
 
   resetCoachForm();
@@ -1623,7 +1762,15 @@ const resetCoachForm = () => {
     top: 0,
     behavior: "smooth",
   });
+
+  setTimeout(() => {
+    navigate("/admin/coach-managmnet");
+  }, 1000);
 }
+
+
+
+
 
    } catch (error) {
 
@@ -2820,25 +2967,35 @@ const handleRemoveDocument = (config) => {
 
               {/* JOINING DATE */}
 
-              <div>
 
-                <label className="field-label">
-                  JOINING DATE *
-                </label>
+{/* JOINING DATE - ONLY FOR ADD */}
 
-                <input
-                  ref={fieldRefs.joiningDate}
-                  type="date"
-                  name="joiningDate"
-                  value={formData.joiningDate}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  className={inputClass("joiningDate")}
-                />
+{!isEditMode && (
+  <div>
 
-                <FieldError field="joiningDate" />
+    <label className="field-label">
+      JOINING DATE *
+    </label>
 
-              </div>
+    <input
+      ref={fieldRefs.joiningDate}
+      type="date"
+      name="joiningDate"
+      value={formData.joiningDate}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      className={inputClass("joiningDate")}
+    />
+
+    <FieldError field="joiningDate" />
+
+  </div>
+)}
+
+
+
+
+
 
             </div>
 
@@ -2886,13 +3043,94 @@ const handleRemoveDocument = (config) => {
             </div>
 
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+            
 
-              <div>
 
-                <label className="field-label">
-                  QUALIFICATION *
-                </label>
+
+
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-6">
+
+  {/* SPORT */}
+
+
+
+
+
+<div>
+
+  <label className="field-label">
+    SPORT *
+  </label>
+
+  <div className="relative">
+
+    <select
+      ref={fieldRefs.sportId}
+      name="sportId"
+      value={formData.sportId}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      disabled={sportsLoading}
+      className={`${inputClass("sportId")} appearance-none`}
+    >
+
+      <option value="">
+        {sportsLoading
+          ? "Loading sports..."
+          : sports.length === 0
+          ? "No Active Sports Available"
+          : "Select Sport"}
+      </option>
+
+      {sports.map((sport) => (
+        <option
+          key={sport.id}
+          value={sport.id}
+        >
+          {sport.sportsName}
+        </option>
+      ))}
+
+    </select>
+
+    <ChevronDown
+      className="
+        absolute
+        right-3
+        top-1/2
+        -translate-y-1/2
+        w-4
+        h-4
+        text-slate-400
+        pointer-events-none
+      "
+    />
+
+  </div>
+
+  <FieldError field="sportId" />
+
+</div>
+
+
+
+
+
+
+
+
+
+
+  {/* QUALIFICATION */}
+
+  <div>
+
+    <label className="field-label">
+      QUALIFICATION *
+    </label>
+
+
 
                 <input
                   ref={fieldRefs.qualification}
@@ -3183,65 +3421,71 @@ const handleRemoveDocument = (config) => {
 
               {/* PASSWORD */}
 
-              <div className="md:col-span-2">
 
-                <label className="field-label">
-                  PASSWORD {isEditMode ? "" : "*"}
-                </label>
+{/* PASSWORD - ONLY FOR ADD */}
 
-                <div className="relative">
+{!isEditMode && (
+  <div className="md:col-span-2">
 
-                  <input
-                    ref={fieldRefs.password}
-                    type={
-                      showPassword
-                        ? "text"
-                        : "password"
-                    }
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    className={`${inputClass(
-                      "password"
-                    )} pr-12`}
-                    placeholder={
-                      isEditMode
-                        ? "Leave blank to keep existing password"
-                        : "Minimum 8 characters"
-                    }
-                  />
+    <label className="field-label">
+      PASSWORD *
+    </label>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setShowPassword(
-                        (prev) => !prev
-                      )
-                    }
-                    className="
-                      absolute
-                      right-3
-                      top-1/2
-                      -translate-y-1/2
-                      text-slate-400
-                      hover:text-slate-600
-                    "
-                  >
+    <div className="relative">
 
-                    {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
+      <input
+        ref={fieldRefs.password}
+        type={
+          showPassword
+            ? "text"
+            : "password"
+        }
+        name="password"
+        value={formData.password}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        className={`${inputClass(
+          "password"
+        )} pr-12`}
+        placeholder="Minimum 8 characters"
+      />
 
-                  </button>
+      <button
+        type="button"
+        onClick={() =>
+          setShowPassword(
+            (prev) => !prev
+          )
+        }
+        className="
+          absolute
+          right-3
+          top-1/2
+          -translate-y-1/2
+          text-slate-400
+          hover:text-slate-600
+        "
+      >
 
-                </div>
+        {showPassword ? (
+          <EyeOff className="w-5 h-5" />
+        ) : (
+          <Eye className="w-5 h-5" />
+        )}
 
-                <FieldError field="password" />
+      </button>
 
-              </div>
+    </div>
+
+    <FieldError field="password" />
+
+  </div>
+)}
+
+
+
+
+
 
             </div>
 

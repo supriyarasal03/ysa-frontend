@@ -19,6 +19,7 @@ import {
 import PlayerService from "./PlayerService";
 import PaymentService from "../payment/PaymentService";
 import axiosClient from "../../api/axiosClient";
+import { getAllInventory } from "../inventory/inventoryApi";
 
 const bloodGroups = [
   { label: "A+", value: "A_POSITIVE" },
@@ -44,7 +45,8 @@ const initialForm = {
   confirmPassword: "",
   sportId: "",
   batchId: "",
-  feeStructureId: "",
+  includeInventory: false,
+  inventoryFee: "0",
   firstName: "",
   lastName: "",
   dateOfBirth: "",
@@ -77,6 +79,23 @@ const initialPreviews = {
   panCard: null,
   certificate: null,
 };
+
+
+const formatTime12Hour = (time) => {
+  if (!time) return "";
+
+  const [hours, minutes] = String(time).split(":");
+  let hour = Number(hours);
+
+  const period = hour >= 12 ? "PM" : "AM";
+
+  hour = hour % 12;
+  if (hour === 0) hour = 12;
+
+  return `${hour}:${minutes} ${period}`;
+};
+
+
 
 const money = (value) =>
   Number(value || 0).toLocaleString("en-IN", {
@@ -111,17 +130,6 @@ const unwrapList = (response) => {
   if (Array.isArray(response?.content)) return response.content;
   return [];
 };
-
-const getFeeId = (fee) =>
-  fee?.id ??
-  fee?.feeStructureId ??
-  fee?.data?.id;
-
-const getFeeSportId = (fee) =>
-  fee?.sportId ??
-  fee?.sport?.id ??
-  fee?.sport?.sportId ??
-  fee?.data?.sportId;
 
 const getFeeDurationText = (fee) => {
   const unit = String(fee?.durationUnit || "")
@@ -164,9 +172,16 @@ const PlayerForm = () => {
   const [files, setFiles] = useState(initialFiles);
   const [previews, setPreviews] = useState(initialPreviews);
 
+
+  const [existingDocuments, setExistingDocuments] = useState({
+  aadhaarFront: null,
+  aadhaarBack: null,
+  panCard: null,
+  certificate: null,
+});
+
   const [sports, setSports] = useState([]);
   const [batches, setBatches] = useState([]);
-  const [fees, setFees] = useState([]);
 
   const [loadingData, setLoadingData] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -193,6 +208,15 @@ const PlayerForm = () => {
   const [qrData, setQrData] = useState(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [upiScreenshot, setUpiScreenshot] = useState(null);
+  // Inventory selected during the same registration form.
+  const [inventory, setInventory] = useState([]);
+  const [inventorySubItem, setInventorySubItem] = useState("");
+  const [inventoryBrand, setInventoryBrand] = useState("");
+  const [inventoryId, setInventoryId] = useState("");
+  const [inventoryQuantity, setInventoryQuantity] = useState("1");
+  const [selectedInventoryItems, setSelectedInventoryItems] = useState([]);
+  const [inventoryLoading, setInventoryLoading] = useState(false);
+
 
   const age = getAge(form.dateOfBirth);
   const isAdult = age !== null && age >= 18;
@@ -206,53 +230,115 @@ const PlayerForm = () => {
       try {
         setLoadingData(true);
 
-        const [sportsResponse, batchesResponse] =
+        const [sportsResponse, batchesResponse, inventoryResponse] =
           await Promise.all([
             axiosClient.get("/sport"),
             axiosClient.get("/batches"),
+            getAllInventory(),
           ]);
 
         const sportList = unwrapList(sportsResponse.data);
         const batchList = unwrapList(batchesResponse.data);
+        const inventoryList = Array.isArray(inventoryResponse?.data)
+          ? inventoryResponse.data
+          : [];
 
         setSports(sportList);
         setBatches(batchList);
+        setInventory(inventoryList);
 
         if (isEdit) {
           const playerResponse =
             await PlayerService.getById(id);
 
+
+
+
           const player =
             playerResponse?.data || playerResponse;
 
-          if (player) {
-            setForm((prev) => ({
-              ...prev,
-              username: player.username || "",
-          
-              sportId: player.sportId || "",
-              firstName: player.firstName || "",
-              lastName: player.lastName || "",
-              dateOfBirth: player.dateOfBirth
-                ? String(player.dateOfBirth).slice(0, 10)
-                : "",
-              gender: player.gender || "",
-              bloodGroup: player.bloodGroup || "",
-              address: player.address || "",
-              playerMobileNo: player.playerMobileNo || "",
-              playerEmail: player.playerEmail || "",
-              parentName: player.parentName || "",
-              parentMobileNo: player.parentMobileNo || "",
-              parentEmail: player.parentEmail || "",
-              admissionDate: player.admissionDate
-                ? String(player.admissionDate).slice(0, 10)
-                : prev.admissionDate,
-              hasInjury: Boolean(player.hasInjury),
-              injuryDetails: player.injuryDetails || "",
-              photoCaptureType:
-                player.photoCaptureType || "UPLOADED",
-            }));
-          }
+
+            setExistingDocuments({
+  aadhaarFront: player.aadhaarFrontUrl || null,
+  aadhaarBack: player.aadhaarBackUrl || null,
+  panCard: player.panCardUrl || null,
+  certificate: player.certificateUrl || null,
+});
+
+
+if (player) {
+  setForm((prev) => ({
+    ...prev,
+    username: player.username || "",
+
+   sportId: player.sportId || "",
+batchId: player.batchId || "",
+firstName: player.firstName || "",
+
+    lastName: player.lastName || "",
+    dateOfBirth: player.dateOfBirth
+      ? String(player.dateOfBirth).slice(0, 10)
+      : "",
+    gender: player.gender || "",
+    bloodGroup: player.bloodGroup || "",
+    address: player.address || "",
+    playerMobileNo: player.playerMobileNo || "",
+    playerEmail: player.playerEmail || "",
+    parentName: player.parentName || "",
+    parentMobileNo: player.parentMobileNo || "",
+    parentEmail: player.parentEmail || "",
+    admissionDate: player.admissionDate
+      ? String(player.admissionDate).slice(0, 10)
+      : prev.admissionDate,
+    hasInjury: Boolean(player.hasInjury),
+    injuryDetails: player.injuryDetails || "",
+    photoCaptureType:
+      player.photoCaptureType || "UPLOADED",
+  }));
+
+  // -----------------------------------------
+  // LOAD EXISTING PLAYER PHOTO
+  // -----------------------------------------
+  // -----------------------------------------
+// LOAD EXISTING PLAYER PHOTO
+// -----------------------------------------
+// -----------------------------------------
+// LOAD EXISTING PLAYER PHOTO
+// -----------------------------------------
+if (player.photoUrl) {
+  try {
+    const photoPath = player.photoUrl.startsWith("/api/")
+      ? player.photoUrl.substring(4)
+      : player.photoUrl;
+
+    const photoResponse = await axiosClient.get(
+      photoPath,
+      {
+        responseType: "blob",
+      }
+    );
+
+    const photoBlobUrl = URL.createObjectURL(
+      photoResponse.data
+    );
+
+    setPreviews((prev) => ({
+      ...prev,
+      photo: photoBlobUrl,
+    }));
+  } catch (photoError) {
+    console.error(
+      "Failed to load player photo:",
+      photoError
+    );
+  }
+}
+
+
+
+}
+
+
         }
       } catch (error) {
         console.error("Player form load error:", error);
@@ -270,141 +356,140 @@ const PlayerForm = () => {
   }, [id, isEdit]);
 
   // =========================================================
-  // LOAD ALL ACTIVE FEES FOR SELECTED SPORT
-  // =========================================================
+const availableSports = useMemo(() => {
+  return sports.filter((sport) => {
+    const status = String(
+      sport?.Status ??
+      sport?.status ??
+      sport?.sportStatus ??
+      sport?.data?.Status ??
+      sport?.data?.status ??
+      ""
+    ).toUpperCase();
 
-  useEffect(() => {
-    const loadFees = async () => {
-      if (!form.sportId) {
-        setFees([]);
-        return;
-      }
+    return status === "ACTIVE";
+  });
+}, [sports]);
 
-      try {
-        setBackendErrors((prev) => ({
-          ...prev,
-          general: "",
-        }));
-
-        const response = await axiosClient.get(
-          `/fee/sport/${form.sportId}`
-        );
-
-        let list = unwrapList(response?.data);
-
-        // Fallback in case the sport-specific endpoint
-        // returns an incomplete list.
-        if (list.length < 2) {
-          try {
-            const allResponse = await axiosClient.get(
-              "/fee",
-              { params: { status: "ACTIVE" } }
-            );
-
-            const allFees = unwrapList(allResponse?.data);
-
-            const sportFees = allFees.filter(
-              (fee) =>
-                String(getFeeSportId(fee)) ===
-                String(form.sportId)
-            );
-
-            if (sportFees.length > list.length) {
-              list = sportFees;
-            }
-          } catch (fallbackError) {
-            console.warn(
-              "Fee fallback request failed:",
-              fallbackError
-            );
-          }
-        }
-
-        const activeFees = list
-          .filter((fee) => {
-            const status = String(
-              fee?.status || ""
-            ).toUpperCase();
-
-            return !status || status === "ACTIVE";
-          })
-          .filter((fee) => {
-            const feeSportId = getFeeSportId(fee);
-
-            return (
-              feeSportId == null ||
-              String(feeSportId) ===
-                String(form.sportId)
-            );
-          })
-          .sort((a, b) => {
-            return (
-              Number(a?.duration || 0) -
-              Number(b?.duration || 0)
-            );
-          });
-
-        setFees(activeFees);
-
-        setForm((prev) => {
-          const stillExists = activeFees.some(
-            (fee) =>
-              String(getFeeId(fee)) ===
-              String(prev.feeStructureId)
-          );
-
-          return stillExists
-            ? prev
-            : {
-                ...prev,
-                feeStructureId: "",
-              };
-        });
-      } catch (error) {
-        console.error("Fee load error:", error);
-        setFees([]);
-        setBackendErrors((prev) => ({
-          ...prev,
-          general:
-            error.response?.data?.message ||
-            "Unable to load fee structures.",
-        }));
-      }
-    };
-
-    loadFees();
-  }, [form.sportId]);
 
   // =========================================================
   // DERIVED DATA
   // =========================================================
+const availableBatches = useMemo(() => {
+  return batches.filter((batch) => {
+    const sameSport =
+      String(batch.sportId) === String(form.sportId);
 
-  const availableBatches = useMemo(() => {
-    return batches.filter((batch) => {
-      const sameSport =
-        String(batch.sportId) === String(form.sportId);
+    const active =
+      !batch.status ||
+      String(batch.status).toUpperCase() === "ACTIVE";
 
-      const active =
-        !batch.status ||
-        String(batch.status).toUpperCase() === "ACTIVE";
+    // API currently provides capacity, not availableSeats.
+    const capacity = Number(batch.capacity ?? 0);
 
-      const seats =
-        Number(batch.availableSeats ?? 0);
+    return sameSport && active && capacity > 0;
+  });
+}, [batches, form.sportId]);
 
-      return sameSport && active && seats > 0;
-    });
-  }, [batches, form.sportId]);
+
+
+
+
+
 
   const selectedBatch = availableBatches.find(
     (batch) =>
       String(batch.id) === String(form.batchId)
   );
 
-  const selectedFee = fees.find(
-    (fee) =>
-      String(getFeeId(fee)) ===
-      String(form.feeStructureId)
+
+const selectedFee = selectedBatch
+  ? {
+      amount: Number(selectedBatch.fee || 0),
+      discount: Number(selectedBatch.discount || 0),
+      finalFee: Number(
+        selectedBatch.finalFee ??
+          (
+            Number(selectedBatch.fee || 0) -
+            Number(selectedBatch.discount || 0)
+          )
+      ),
+      duration: selectedBatch.courseDuration || 0,
+      durationUnit: selectedBatch.courseDurationUnit || "",
+    }
+  : null;
+
+
+  // =========================================================
+  // REGISTRATION AMOUNTS
+  // IMPORTANT: THREE_INSTALLMENTS = ZERO DISCOUNT
+  // =========================================================
+
+  const originalCourseFee = Number(
+  selectedBatch?.fee || 0
+);
+
+  const configuredDiscount = Math.max(
+    0,
+    Math.min(
+      originalCourseFee,
+      Number(selectedBatch?.discount || 0)
+    )
   );
+
+  const registrationDiscount =
+    paymentPlan === "ONE_TIME"
+      ? configuredDiscount
+      : 0;
+
+  const finalCourseFee = Number(
+    (originalCourseFee - registrationDiscount).toFixed(2)
+  );
+
+  const inventoryTotal = form.includeInventory
+    ? selectedInventoryItems.reduce(
+        (sum, item) =>
+          sum +
+          Number(item.unitPrice || item.sellingPrice || 0) *
+            Number(item.quantity || 0),
+        0
+      )
+    : 0;
+
+  const totalRegistrationFee = Number(
+    (finalCourseFee + inventoryTotal).toFixed(2)
+  );
+
+  const installmentAmounts = useMemo(() => {
+    if (paymentPlan !== "THREE_INSTALLMENTS") {
+      return [];
+    }
+
+    const first = Number(
+      (totalRegistrationFee / 3).toFixed(2)
+    );
+    const second = first;
+    const third = Number(
+      (totalRegistrationFee - first - second).toFixed(2)
+    );
+
+    return [first, second, third];
+  }, [paymentPlan, totalRegistrationFee]);
+
+  useEffect(() => {
+    if (!isEdit && paymentPlan) {
+      setPaymentAmount(
+        paymentPlan === "THREE_INSTALLMENTS"
+          ? installmentAmounts[0] || 0
+          : totalRegistrationFee
+      );
+    }
+  }, [
+    isEdit,
+    paymentPlan,
+    totalRegistrationFee,
+    installmentAmounts,
+  ]);
 
   // =========================================================
   // FIELD CHANGE
@@ -448,18 +533,29 @@ const PlayerForm = () => {
   const handleSportChange = (e) => {
     const sportId = e.target.value;
 
-    setForm((prev) => ({
-      ...prev,
-      sportId,
-      batchId: "",
-      feeStructureId: "",
-    }));
+   setForm((prev) => ({
+  ...prev,
+  sportId,
+  batchId: "",
+  includeInventory: false,
+  inventoryFee: "0",
+}));
 
-    setFees([]);
+    setInventorySubItem("");
+    setInventoryBrand("");
+    setInventoryId("");
+    setInventoryQuantity("1");
+    setSelectedInventoryItems([]);
+
     setPaymentPlan("");
     setPaymentMethod("");
     setPaymentAmount("");
     setInstallments([]);
+    setForm((prev) => ({
+      ...prev,
+      includeInventory: false,
+      inventoryFee: "0",
+    }));
     setSelectedInstallment(null);
     setQrData(null);
     setUpiScreenshot(null);
@@ -468,7 +564,6 @@ const PlayerForm = () => {
       ...prev,
       sportId: "",
       batchId: "",
-      feeStructureId: "",
     }));
   };
 
@@ -484,25 +579,8 @@ const PlayerForm = () => {
     }));
   };
 
-  const handleFeeChange = (e) => {
-    setForm((prev) => ({
-      ...prev,
-      feeStructureId: e.target.value,
-    }));
 
-    setPaymentPlan("");
-    setPaymentMethod("");
-    setPaymentAmount("");
-    setInstallments([]);
-    setSelectedInstallment(null);
-    setQrData(null);
-    setUpiScreenshot(null);
 
-    setErrors((prev) => ({
-      ...prev,
-      feeStructureId: "",
-    }));
-  };
 
   // =========================================================
   // FILE HANDLING
@@ -721,60 +799,46 @@ const PlayerForm = () => {
       next.address = "Address must be between 5 and 255 characters.";
     }
 
-    if (!form.sportId) next.sportId = "Sport is required.";
-    if (!form.batchId) next.batchId = "Batch is required.";
-    if (!form.feeStructureId) next.feeStructureId = "Fee structure is required.";
 
-    if (isAdult) {
-      if (!form.playerMobileNo) {
-        next.playerMobileNo = "Player mobile number is required.";
-      } else if (!mobileRegex.test(form.playerMobileNo)) {
-        next.playerMobileNo = "Enter a valid 10-digit mobile number starting with 6-9.";
+if (!isEdit) {
+  if (!form.sportId) next.sportId = "Sport is required.";
+  if (!form.batchId) next.batchId = "Batch is required.";
+  if (!selectedBatch) next.batchId = "Please select a valid batch.";
+  if (!paymentPlan) next.paymentPlan = "Payment plan is required.";
+
+
+
+
+
+      if (form.includeInventory && selectedInventoryItems.length === 0) {
+        next.inventoryId = "Select at least one inventory item or choose No inventory.";
       }
 
-      if (!form.playerEmail.trim()) {
-        next.playerEmail = "Player email is required for adults.";
-      } else if (!emailRegex.test(form.playerEmail)) {
-        next.playerEmail = "Enter a valid player email address.";
-      }
-    } else {
-      if (!form.parentName.trim()) {
-        next.parentName = "Parent / Guardian name is required.";
-      } else if (form.parentName.trim().length < 3 || form.parentName.trim().length > 30) {
-        next.parentName = "Parent name must be between 3 and 30 characters.";
-      } else if (!nameRegex.test(form.parentName.trim())) {
-        next.parentName = "Parent name can contain only letters and spaces.";
+      if (form.hasInjury && !form.injuryDetails.trim()) {
+        next.injuryDetails = "Injury details are required.";
       }
 
-      if (!form.parentMobileNo) {
-        next.parentMobileNo = "Parent mobile number is required.";
-      } else if (!mobileRegex.test(form.parentMobileNo)) {
-        next.parentMobileNo = "Enter a valid 10-digit parent mobile number starting with 6-9.";
+      if (paymentMethod === "UPI" && !upiScreenshot) {
+        next.paymentMethod = "UPI payment screenshot is required.";
       }
 
-      if (!form.parentEmail.trim()) {
-        next.parentEmail = "Parent email is required.";
-      } else if (!emailRegex.test(form.parentEmail)) {
-        next.parentEmail = "Enter a valid parent email address.";
+      if (!files.photo) {
+        next.photo = "Player photo is required.";
+      }
+
+      if (!files.aadhaarFront) {
+        next.aadhaarFront = "Aadhaar front is required.";
+      }
+
+      if (!files.aadhaarBack) {
+        next.aadhaarBack = "Aadhaar back is required.";
+      }
+
+      if (isAdult && !files.panCard) {
+        next.panCard = "PAN card is required for adults.";
       }
     }
 
-    if (!form.admissionDate) {
-      next.admissionDate = "Admission date is required.";
-    } else if (form.admissionDate > today) {
-      next.admissionDate = "Admission date cannot be in the future.";
-    }
-
-    if (form.hasInjury && !form.injuryDetails.trim()) {
-      next.injuryDetails = "Please provide injury details.";
-    } else if (form.injuryDetails && form.injuryDetails.length > 300) {
-      next.injuryDetails = "Injury details cannot exceed 300 characters.";
-    }
-
-    if (!files.photo) next.photo = "Player photo is required.";
-    if (!files.aadhaarFront) next.aadhaarFront = "Aadhaar front is required.";
-    if (!files.aadhaarBack) next.aadhaarBack = "Aadhaar back is required.";
-    if (isAdult && !files.panCard) next.panCard = "PAN card is required for adults.";
 
     setErrors(next);
 
@@ -865,7 +929,6 @@ const PlayerForm = () => {
         ["parent mobile", "parentMobileNo"],
         ["sport", "sportId"],
         ["batch", "batchId"],
-        ["fee structure", "feeStructureId"],
         ["first name", "firstName"],
         ["last name", "lastName"],
         ["date of birth", "dateOfBirth"],
@@ -913,7 +976,8 @@ const PlayerForm = () => {
       "injuryDetails",
       "sportId",
       "batchId",
-      "feeStructureId",
+      "inventoryFee",
+      "paymentPlan",
       "photo",
       "aadhaarFront",
       "aadhaarBack",
@@ -931,10 +995,13 @@ const PlayerForm = () => {
   };
 
   // =========================================================
-  // STEP 1 - CREATE PLAYER + ENROLLMENT
+  // SINGLE FORM REGISTRATION
+  // Player + Enrollment + Installments + Payment
   // =========================================================
 
-  const handleContinueToPayment = async () => {
+  const handleRegistrationSubmit = async (e) => {
+    e?.preventDefault();
+
     setSuccessMessage("");
     setBackendErrors({});
 
@@ -943,213 +1010,207 @@ const PlayerForm = () => {
     }
 
     if (isEdit) {
+      return handleEditSubmit(e);
+    }
+
+    if (!selectedBatch) {
       setBackendErrors({
-        general:
-          "Payment/enrollment creation is available only for new player registration.",
+        batchId: "Please select a valid batch. Fee and discount are taken from the selected batch.",
       });
+      focusErrorField("batchId");
       return;
     }
+
+    if (!paymentPlan) {
+      setBackendErrors({
+        paymentPlan: "Please select a payment plan.",
+      });
+      focusErrorField("paymentPlan");
+      return;
+    }
+
+    if (!paymentMethod) {
+      setBackendErrors({
+        paymentMethod: "Please select a payment method.",
+      });
+      focusErrorField("paymentMethod");
+      return;
+    }
+
+    if (paymentMethod === "UPI" && !upiScreenshot) {
+      setBackendErrors({
+        paymentMethod: "Upload the UPI payment screenshot.",
+      });
+      focusErrorField("paymentMethod");
+      return;
+    }
+
+    if (form.includeInventory && selectedInventoryItems.length === 0) {
+      setBackendErrors({
+        inventoryId: "Select at least one inventory item or choose No inventory.",
+      });
+      focusErrorField("inventoryId");
+      return;
+    }
+
+    const inventoryTotal = form.includeInventory
+      ? selectedInventoryItems.reduce(
+          (sum, item) =>
+            sum +
+            Number(item.unitPrice || item.sellingPrice || 0) *
+              Number(item.quantity || 0),
+          0
+        )
+      : 0;
+
+    // The registration backend currently accepts inventoryFee.
+    // Keep the selected inventory total synchronized with that field.
+    const inventoryFee = Number(inventoryTotal.toFixed(2));
+
+    const originalCourseFee = Number(
+      selectedBatch?.fee ??
+        selectedFee?.amount ??
+        0
+    );
+
+    const configuredDiscount = Math.max(
+      0,
+      Math.min(
+        originalCourseFee,
+        Number(selectedBatch?.discount || 0)
+      )
+    );
+
+    // BUSINESS RULE:
+    // ONE_TIME -> discount applies
+    // THREE_INSTALLMENTS -> discount is always ZERO
+    const discount =
+      paymentPlan === "ONE_TIME"
+        ? configuredDiscount
+        : 0;
+
+    const finalCourseFee = Number(
+      (originalCourseFee - discount).toFixed(2)
+    );
+
+    const totalRegistrationFee = Number(
+      (finalCourseFee + inventoryFee).toFixed(2)
+    );
+
+    // UI amount. The backend creates the actual payment/installment
+    // records from the same payment plan.
+    const paymentAmount =
+      paymentPlan === "THREE_INSTALLMENTS"
+        ? Number((totalRegistrationFee / 3).toFixed(2))
+        : totalRegistrationFee;
 
     try {
       setLoading(true);
 
-      // -------------------------------
-      // CREATE PLAYER
-      // -------------------------------
+      const data = new FormData();
 
+      const accountEmail = isAdult
+        ? form.playerEmail
+        : form.parentEmail;
 
+      const fields = {
+        username: form.username,
+        email: accountEmail,
+        password: form.password,
+        confirmPassword: form.confirmPassword,
+        sportId: form.sportId,
+        batchId: form.batchId,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        dateOfBirth: form.dateOfBirth,
+        gender: form.gender,
+        bloodGroup: form.bloodGroup,
+        address: form.address,
+        playerHasOwnContact: String(isAdult),
+        playerMobileNo: form.playerMobileNo || "",
+        playerEmail: form.playerEmail || "",
+        parentName: form.parentName,
+        parentMobileNo: form.parentMobileNo || "",
+        parentEmail: form.parentEmail || "",
+        admissionDate: form.admissionDate,
+        hasInjury: String(Boolean(form.hasInjury)),
+        injuryDetails: form.injuryDetails || "",
+        photoCaptureType: form.photoCaptureType || "UPLOADED",
+        inventoryFee: String(inventoryFee),
+        paymentPlan,
+        paymentMethod,
+        // Keep selected item IDs available to any compatible backend
+        // without inventing a new endpoint.
+        inventoryItems: JSON.stringify(
+          selectedInventoryItems.map((item) => ({
+            inventoryId: Number(item.id),
+            quantity: Number(item.quantity),
+          }))
+        ),
+      };
 
-     const data = new FormData();
+      Object.entries(fields).forEach(([key, value]) => {
+        if (value !== null && value !== undefined && value !== "") {
+          data.append(key, value);
+        }
+      });
 
-// Email used for User entity
-const accountEmail = isAdult
-  ? form.playerEmail
-  : form.parentEmail;
-
-Object.entries(form).forEach(
-  ([key, value]) => {
-    if (
-      key === "email" ||
-      value === null ||
-      value === undefined ||
-      value === ""
-    ) {
-      return;
-    }
-
-    data.append(key, value);
-  }
-);
-
-// User.email
-data.append("email", accountEmail);
-
-// Backend requires this flag
-data.append(
-  "playerHasOwnContact",
-  String(isAdult)
-);
-
-
-
-
-
-
-      // Backend PlayerRequest requires this flag.
-      data.append(
-        "playerHasOwnContact",
-        String(isAdult)
-      );
-
-      data.append(
-        "photo",
-        files.photo
-      );
-
-      data.append(
-        "aadhaarFront",
-        files.aadhaarFront
-      );
-
-      data.append(
-        "aadhaarBack",
-        files.aadhaarBack
-      );
+      data.append("photo", files.photo);
+      data.append("aadhaarFront", files.aadhaarFront);
+      data.append("aadhaarBack", files.aadhaarBack);
 
       if (files.panCard) {
-        data.append(
-          "panCard",
-          files.panCard
-        );
+        data.append("panCard", files.panCard);
       }
 
       if (files.certificate) {
-        data.append(
-          "certificate",
-          files.certificate
-        );
+        data.append("certificate", files.certificate);
       }
 
-      const playerResponse =
-        await PlayerService.create(data);
+      if (paymentMethod === "UPI" && upiScreenshot) {
+        data.append("upiScreenshot", upiScreenshot);
+      }
 
-      const player =
-        playerResponse?.data ||
-        playerResponse;
+      const response = await PlayerService.register(data);
 
-      if (!player?.id) {
+      if (!response?.success) {
         throw new Error(
-          "Player created but player ID was not returned."
+          response?.message || "Player registration failed."
         );
       }
 
-      setCreatedPlayer(player);
+      const registration = response.data;
 
-      // -------------------------------
-      // CREATE ENROLLMENT
-      // -------------------------------
+      setCreatedPlayer(registration?.player || null);
+      setCreatedEnrollment(registration?.enrollment || null);
+      setInstallments(registration?.installments || []);
 
-      const enrollmentPayload = {
-        playerId: Number(player.id),
-        sportId: Number(form.sportId),
-        batchId: Number(form.batchId),
-        feeStructureId: Number(
-          form.feeStructureId
-        ),
-        paymentPlan,
-      };
+      setPaymentAmount(paymentAmount);
 
-      const enrollmentResponse =
-        await axiosClient.post(
-          "/player-enrollment",
-          enrollmentPayload
-        );
-
-      const enrollment =
-        enrollmentResponse?.data?.data;
-
-      if (!enrollment?.id) {
-        throw new Error(
-          "Enrollment created but enrollment ID was not returned."
-        );
-      }
-
-      setCreatedEnrollment(enrollment);
-
-      // -------------------------------
-      // LOAD INSTALLMENTS
-      // -------------------------------
-
-      const installmentResponse =
-        await PaymentService.getInstallments(
-          enrollment.id
-        );
-
-      const installmentList =
-        installmentResponse?.data || [];
-
-      setInstallments(installmentList);
-
-      const firstPending =
-        installmentList.find(
-          (item) =>
-            String(item.status).toUpperCase() ===
-            "PENDING"
-        ) || null;
-
-      setSelectedInstallment(
-        firstPending
+      setSuccessMessage(
+        paymentMethod === "UPI"
+          ? "Player registration completed. UPI payment is pending verification."
+          : "Player registration and payment completed successfully."
       );
 
-      const amount =
-        paymentPlan === "THREE_INSTALLMENTS"
-          ? firstPending?.amount
-          : enrollment.finalAmount ??
-            selectedFee?.amount;
-
-      if (!amount || Number(amount) <= 0) {
-        throw new Error(
-          "Payment amount could not be determined."
-        );
-      }
-
-      setPaymentAmount(
-        Number(amount)
-      );
-
-      setStep("PAYMENT");
-
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
+      setTimeout(() => {
+        navigate("/receptionist/players");
+      }, 1800);
     } catch (error) {
-      console.error(
-        "Player/enrollment creation error:",
-        error
-      );
+      console.error("Player registration error:", error);
 
-      const response =
-        error.response?.data;
-
-      const parsedErrors =
-        parseBackendValidationErrors(
-          response,
-          isAdult
-        );
+      const response = error.response?.data;
+      const parsedErrors = parseBackendValidationErrors(response, isAdult);
 
       if (Object.keys(parsedErrors).length) {
         setBackendErrors(parsedErrors);
-
-        setTimeout(() => {
-          focusFirstError(parsedErrors);
-        }, 80);
+        setTimeout(() => focusFirstError(parsedErrors), 80);
       } else {
         setBackendErrors({
           general:
             response?.message ||
             error.message ||
-            "Unable to create player enrollment.",
+            "Unable to complete player registration.",
         });
       }
     } finally {
@@ -1158,30 +1219,72 @@ data.append(
   };
 
   // =========================================================
-  // INSTALLMENT CHANGE
+  // PAYMENT AMOUNT
   // =========================================================
 
-  const handleInstallmentChange = (e) => {
-    const installmentId = e.target.value;
 
-    const installment =
-      installments.find(
-        (item) =>
-          String(item.id) ===
-          String(installmentId)
-      );
 
-    setSelectedInstallment(
-      installment || null
+
+
+// =========================================================
+// PAYMENT AMOUNT
+// =========================================================
+
+const getRegistrationPaymentAmount = () => {
+
+  const batchFee = Number(
+    selectedBatch?.fee || 0
+  );
+
+  const discountedFee = Number(
+    selectedBatch?.finalFee ??
+    batchFee
+  );
+
+  const inventoryFee = form.includeInventory
+    ? Number(form.inventoryFee || 0)
+    : 0;
+
+  // =======================================================
+  // THREE INSTALLMENTS
+  // NO DISCOUNT
+  // =======================================================
+
+  if (
+    paymentPlan === "THREE_INSTALLMENTS"
+  ) {
+
+    const totalWithoutDiscount =
+      batchFee + inventoryFee;
+
+    return Number(
+      (totalWithoutDiscount / 3).toFixed(2)
     );
+  }
 
-    setPaymentAmount(
-      installment?.amount || ""
-    );
+  // =======================================================
+  // ONE TIME
+  // DISCOUNT APPLIED
+  // =======================================================
 
-    setQrData(null);
-    setUpiScreenshot(null);
-  };
+  return Number(
+    (
+      discountedFee +
+      inventoryFee
+    ).toFixed(2)
+  );
+};
+
+
+
+
+
+
+
+
+
+
+
 
   // =========================================================
   // PAYMENT METHOD
@@ -1257,59 +1360,37 @@ data.append(
   const handleCompletePayment = async () => {
     setBackendErrors({});
 
-    if (!createdPlayer?.id) {
-      setBackendErrors({
-        general:
-          "Player information is missing.",
-      });
-      return;
-    }
-
-    if (!createdEnrollment?.id) {
-      setBackendErrors({
-        general:
-          "Enrollment information is missing.",
-      });
-      return;
-    }
-
     if (!paymentMethod) {
       setBackendErrors({
-        general:
-          "Please select a payment method.",
+        paymentMethod: "Please select a payment method.",
       });
       return;
     }
 
-    if (
-      paymentPlan === "THREE_INSTALLMENTS" &&
-      !selectedInstallment?.id
-    ) {
+    if (!paymentPlan) {
       setBackendErrors({
-        general:
-          "Please select an installment.",
+        paymentPlan: "Please select a payment plan.",
       });
       return;
     }
 
-    if (
-      !paymentAmount ||
-      Number(paymentAmount) <= 0
-    ) {
+    if (!selectedBatch) {
       setBackendErrors({
-        general:
-          "Payment amount must be greater than zero.",
+        batchId: "Please select a valid batch.",
       });
       return;
     }
 
-    if (
-      paymentMethod === "UPI" &&
-      !upiScreenshot
-    ) {
+    if (paymentMethod === "UPI" && !upiScreenshot) {
       setBackendErrors({
-        general:
-          "UPI payment screenshot is required.",
+        general: "UPI payment screenshot is required.",
+      });
+      return;
+    }
+
+    if (!files.photo) {
+      setBackendErrors({
+        photo: "Player photo is required.",
       });
       return;
     }
@@ -1317,63 +1398,105 @@ data.append(
     try {
       setLoading(true);
 
-      const payment = {
-        playerId: Number(
-          createdPlayer.id
+      const data = new FormData();
+
+      // User.email is taken from the active contact.
+      const accountEmail = isAdult
+        ? form.playerEmail
+        : form.parentEmail;
+
+      const fields = {
+        username: form.username,
+        email: accountEmail,
+        password: form.password,
+        confirmPassword: form.confirmPassword,
+
+        sportId: form.sportId,
+        batchId: form.batchId,
+
+        firstName: form.firstName,
+        lastName: form.lastName,
+        dateOfBirth: form.dateOfBirth,
+        gender: form.gender,
+        bloodGroup: form.bloodGroup,
+        address: form.address,
+
+        playerHasOwnContact: String(isAdult),
+        playerMobileNo: form.playerMobileNo || "",
+        playerEmail: form.playerEmail || "",
+
+        parentName: form.parentName,
+        parentMobileNo: form.parentMobileNo || "",
+        parentEmail: form.parentEmail || "",
+
+        admissionDate: form.admissionDate,
+
+        hasInjury: String(Boolean(form.hasInjury)),
+        injuryDetails: form.injuryDetails || "",
+
+        photoCaptureType:
+          form.photoCaptureType || "UPLOADED",
+
+        // Required by PlayerRegistrationRequest.
+        inventoryFee: String(
+          form.includeInventory
+            ? Number(form.inventoryFee || 0)
+            : 0
         ),
-        playerEnrollmentId: Number(
-          createdEnrollment.id
-        ),
-        installmentId:
-          paymentPlan === "THREE_INSTALLMENTS"
-            ? Number(
-                selectedInstallment.id
-              )
-            : null,
-        amount: Number(paymentAmount),
+
+        paymentPlan,
         paymentMethod,
       };
 
-      const data = new FormData();
+      Object.entries(fields).forEach(([key, value]) => {
+        if (
+          value !== null &&
+          value !== undefined &&
+          value !== ""
+        ) {
+          data.append(key, value);
+        }
+      });
 
-      data.append(
-        "payment",
-        JSON.stringify(payment)
-      );
+      // Multipart files.
+      data.append("photo", files.photo);
 
-      if (
-        paymentMethod === "UPI" &&
-        upiScreenshot
-      ) {
-        data.append(
-          "upiScreenshot",
-          upiScreenshot
-        );
+      if (files.aadhaarFront) {
+        data.append("aadhaarFront", files.aadhaarFront);
       }
 
-      const response =
-        await PaymentService.create(data);
+      if (files.aadhaarBack) {
+        data.append("aadhaarBack", files.aadhaarBack);
+      }
+
+      if (files.panCard) {
+        data.append("panCard", files.panCard);
+      }
+
+      if (files.certificate) {
+        data.append("certificate", files.certificate);
+      }
+
+      if (paymentMethod === "UPI" && upiScreenshot) {
+        data.append("upiScreenshot", upiScreenshot);
+      }
+
+      const response = await PlayerService.register(data);
 
       if (!response?.success) {
         throw new Error(
           response?.message ||
-            "Payment creation failed."
+            "Player registration failed."
         );
       }
 
-      const paymentResponse =
-        response.data;
+      const registration = response.data;
 
-      // CASH is received immediately.
-      // UPI remains PENDING until receptionist verifies it.
-      if (
-        paymentMethod === "CASH" &&
-        paymentResponse?.id
-      ) {
-        await PaymentService.markAsReceived(
-          paymentResponse.id
-        );
-      }
+      setCreatedPlayer(registration?.player || null);
+      setCreatedEnrollment(registration?.enrollment || null);
+      setInstallments(registration?.installments || []);
+
+      const payment = registration?.payment;
 
       setSuccessMessage(
         paymentMethod === "UPI"
@@ -1382,22 +1505,36 @@ data.append(
       );
 
       setTimeout(() => {
-        navigate(
-          "/receptionist/players"
-        );
+        navigate("/receptionist/players");
       }, 1800);
     } catch (error) {
       console.error(
-        "Payment creation error:",
+        "Player registration error:",
         error
       );
 
-      setBackendErrors({
-        general:
-          error.response?.data?.message ||
-          error.message ||
-          "Unable to create payment.",
-      });
+      const response = error.response?.data;
+
+      const parsedErrors =
+        parseBackendValidationErrors(
+          response,
+          isAdult
+        );
+
+      if (Object.keys(parsedErrors).length) {
+        setBackendErrors(parsedErrors);
+
+        setTimeout(() => {
+          focusFirstError(parsedErrors);
+        }, 80);
+      } else {
+        setBackendErrors({
+          general:
+            response?.message ||
+            error.message ||
+            "Unable to complete player registration.",
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -1431,10 +1568,9 @@ Object.entries(form).forEach(
       value === undefined ||
       value === "" ||
       [
-        "confirmPassword",
-        "batchId",
-        "feeStructureId",
-      ].includes(key)
+  "confirmPassword",
+  "batchId",
+].includes(key)
     ) {
       return;
     }
@@ -1573,9 +1709,6 @@ data.append(
       </p>
     ) : null;
 
-  // Reusable section header used by the payment screen.
-  // Keep this inside the component so the JSX returned by the helper
-  // has access to the current component render.
   const sectionTitle = (number, icon, title, subtitle) => (
     <div className="px-5 sm:px-6 py-5 border-b border-slate-100 bg-white">
       <div className="flex items-center gap-4">
@@ -1583,25 +1716,13 @@ data.append(
           {icon}
         </div>
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">
-              Step {number}
-            </span>
-          </div>
-          <h3 className="text-base sm:text-lg font-semibold text-slate-900 mt-0.5">
-            {title}
-          </h3>
-          {subtitle && (
-            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-              {subtitle}
-            </p>
-          )}
+          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">Step {number}</span>
+          <h3 className="text-base sm:text-lg font-semibold text-slate-900 mt-0.5">{title}</h3>
+          {subtitle && <p className="text-xs sm:text-sm text-slate-500 mt-0.5">{subtitle}</p>}
         </div>
       </div>
     </div>
   );
-
-
 
   if (loadingData) {
     return (
@@ -1613,10 +1734,8 @@ data.append(
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900">
-      {/* PAGE HEADER */}
       <div className="bg-[#0f172a] text-white shadow-md">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="h-[76px] flex items-center justify-between gap-4">
@@ -1635,9 +1754,9 @@ data.append(
                   {isEdit ? "Edit Player" : "Register New Player"}
                 </h1>
                 <p className="text-xs sm:text-sm text-slate-300 mt-0.5 truncate">
-                  {step === "PLAYER"
-                    ? "Enter player details and continue to payment"
-                    : "Collect registration payment"}
+                  {isEdit
+                    ? "Update player information"
+                    : "Complete player, enrollment and payment in one form"}
                 </p>
               </div>
             </div>
@@ -1654,19 +1773,7 @@ data.append(
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-28">
-        {!isEdit && (
-          <div className="mb-5 flex items-center gap-2 text-xs text-slate-500">
-            <span className={step === "PLAYER" ? "font-semibold text-blue-600" : "text-emerald-600"}>
-              1. Player & Enrollment
-            </span>
-            <span>›</span>
-            <span className={step === "PAYMENT" ? "font-semibold text-blue-600" : ""}>
-              2. Payment
-            </span>
-          </div>
-        )}
-
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8 pb-10">
         {backendErrors.general && (
           <div className="mb-5 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex items-start gap-2">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
@@ -1681,16 +1788,8 @@ data.append(
           </div>
         )}
 
-        {step === "PLAYER" && (
           <form
-            onSubmit={
-              isEdit
-                ? handleEditSubmit
-                : (e) => {
-                    e.preventDefault();
-                    handleContinueToPayment();
-                  }
-            }
+            onSubmit={handleRegistrationSubmit}
           >
             <div className="space-y-5">
 
@@ -1718,61 +1817,96 @@ data.append(
 
                   <div className="p-5 sm:p-6 space-y-6">
                     <div className="grid grid-cols-1 xl:grid-cols-[170px_minmax(0,1fr)] gap-6">
-                      {/* PHOTO */}
-                      <div>
-                        <label className={fieldLabel}>Player Photo *</label>
-                        <div className="w-full max-w-[160px] aspect-square rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center relative">
-                          {previews.photo ? (
-                            <img
-                              src={previews.photo}
-                              alt="Player"
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="text-center">
-                              <User className="w-12 h-12 text-slate-300 mx-auto" />
-                              <p className="text-[11px] text-slate-400 mt-2">
-                                Photo required
-                              </p>
-                            </div>
-                          )}
-                        </div>
 
-                        <div className="grid grid-cols-2 gap-2 mt-3 max-w-[160px]">
-                          <button
-                            type="button"
-                            onClick={openCamera}
-                            className="h-9 inline-flex items-center justify-center gap-1.5 bg-blue-600 text-white rounded-lg text-[11px] font-semibold hover:bg-blue-700"
-                          >
-                            <Camera className="w-3.5 h-3.5" />
-                            Camera
-                          </button>
 
-                          <label className="h-9 inline-flex items-center justify-center gap-1.5 border border-slate-200 bg-white rounded-lg text-[11px] font-semibold text-slate-700 cursor-pointer hover:bg-slate-50">
-                            <Upload className="w-3.5 h-3.5" />
-                            Upload
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={(e) => handleFileChange(e, "photo")}
-                            />
-                          </label>
-                        </div>
 
-                        {files.photo && (
-                          <button
-                            type="button"
-                            onClick={() => removeFile("photo")}
-                            className="mt-2 w-full max-w-[160px] h-8 inline-flex items-center justify-center gap-1.5 text-[11px] font-semibold text-red-600 rounded-lg hover:bg-red-50"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                            Remove photo
-                          </button>
-                        )}
 
-                        {errorText("photo")}
-                      </div>
+{/* PHOTO */}
+<div>
+  <label className={fieldLabel}>Player Photo *</label>
+
+  <div className="w-full max-w-[160px] aspect-square rounded-2xl border border-slate-200 bg-slate-50 overflow-hidden flex items-center justify-center relative">
+
+    {previews.photo ? (
+      <>
+        <img
+          src={previews.photo}
+          alt="Player"
+          className="w-full h-full object-cover"
+        />
+
+        {/* REMOVE / REPLACE PHOTO */}
+        <button
+          type="button"
+          onClick={() => removeFile("photo")}
+          title="Remove photo"
+         className="absolute top-2 right-2 text-white hover:text-slate-200 transition"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </>
+    ) : (
+      <div className="text-center">
+        <User className="w-12 h-12 text-slate-300 mx-auto" />
+        <p className="text-[11px] text-slate-400 mt-2">
+          Photo required
+        </p>
+      </div>
+    )}
+  </div>
+
+  {/* CAMERA + UPLOAD */}
+  <div className="grid grid-cols-2 gap-2 mt-3 max-w-[160px]">
+
+    <button
+      type="button"
+      onClick={openCamera}
+      className="h-9 inline-flex items-center justify-center gap-1.5 bg-blue-600 text-white rounded-lg text-[11px] font-semibold hover:bg-blue-700"
+    >
+      <Camera className="w-3.5 h-3.5" />
+      Camera
+    </button>
+
+    <label className="h-9 inline-flex items-center justify-center gap-1.5 border border-slate-200 bg-white rounded-lg text-[11px] font-semibold text-slate-700 cursor-pointer hover:bg-slate-50">
+
+      {previews.photo ? (
+        <>
+          <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+          Uploaded
+        </>
+      ) : (
+        <>
+          <Upload className="w-3.5 h-3.5" />
+          Upload
+        </>
+      )}
+
+      {/* IMPORTANT:
+          Keep input available even when photo already exists.
+          This allows receptionist to replace the photo.
+      */}
+      <input
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) =>
+          handleFileChange(e, "photo")
+        }
+      />
+    </label>
+  </div>
+
+  {errorText("photo")}
+</div>
+
+
+
+
+
+
+
+
+
 
                       {/* BASIC FIELDS */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1859,14 +1993,7 @@ data.append(
                           {errorText("bloodGroup")}
                         </div>
 
-                        <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3 flex flex-col justify-center">
-                          <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">
-                            Login account
-                          </p>
-                          <p className="text-xs font-semibold text-slate-700 mt-1">
-                            {isAdult ? "Player account" : "Parent / guardian account"}
-                          </p>
-                        </div>
+                       
                       </div>
                     </div>
 
@@ -1936,9 +2063,7 @@ data.append(
                           <p className="text-sm font-semibold text-emerald-800">
                             Player contact
                           </p>
-                          <span className="text-xs text-emerald-600">
-                            Used for the player account
-                          </span>
+                         
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1992,9 +2117,7 @@ data.append(
                           <p className="text-sm font-semibold text-violet-800">
                             Parent / Guardian contact
                           </p>
-                          <span className="text-xs text-violet-600">
-                            Used for the parent account
-                          </span>
+                         
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2061,6 +2184,12 @@ data.append(
                     </div>
                   </div>
 
+
+
+
+
+                  
+
                   <div className="p-5 sm:p-6 space-y-5">
                     <div className="max-w-sm">
                       <label className={fieldLabel}>Admission Date *</label>
@@ -2119,6 +2248,10 @@ data.append(
                   </div>
                 </section>
 
+
+
+
+
                 {/* 04 DOCUMENTS */}
                 <section className={sectionClass}>
                   <div className="px-5 sm:px-6 py-5 border-b border-slate-100 flex items-center gap-3">
@@ -2147,105 +2280,169 @@ data.append(
                           ? [{ key: "panCard", label: "PAN Card", required: true }]
                           : []),
                         { key: "certificate", label: "Certificate", required: false },
-                      ].map((doc) => {
-                        const selectedFile = files[doc.key];
 
-                        return (
-                          <div
-                            key={doc.key}
-                            className={`rounded-2xl border p-4 transition ${
-                              getError(doc.key)
-                                ? "border-red-300 bg-red-50/40"
-                                : selectedFile
-                                ? "border-emerald-200 bg-emerald-50/30"
-                                : "border-slate-200 bg-white"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between gap-4">
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-semibold text-slate-800">
-                                    {doc.label}
-                                  </p>
-                                  {doc.required && (
-                                    <span className="text-red-500 text-xs">*</span>
-                                  )}
-                                </div>
 
-                                {selectedFile ? (
-                                  <div className="mt-1 flex items-center gap-2 min-w-0">
-                                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                    <p
-                                      className="text-xs text-emerald-700 font-medium truncate"
-                                      title={selectedFile.name}
-                                    >
-                                      {selectedFile.name}
-                                    </p>
-                                  </div>
-                                ) : (
-                                  <p className="text-xs text-slate-400 mt-1">
-                                    {doc.required ? "Required" : "Optional"} · PDF or image
-                                  </p>
-                                )}
-                              </div>
 
-                              <div className="flex items-center gap-2 shrink-0">
-                                {selectedFile && (
-                                  <button
-                                    type="button"
-                                    onClick={() => removeFile(doc.key)}
-                                    title="Remove file"
-                                    className="w-9 h-9 rounded-lg border border-red-200 text-red-500 flex items-center justify-center hover:bg-red-50 transition"
-                                  >
-                                    <X className="w-4 h-4" />
-                                  </button>
-                                )}
 
-                                <label
-                                  className={`h-9 px-3.5 rounded-lg inline-flex items-center gap-1.5 text-xs font-semibold ${
-                                    selectedFile
-                                      ? "bg-emerald-100 text-emerald-700"
-                                      : "bg-blue-50 text-blue-700 cursor-pointer hover:bg-blue-100"
-                                  }`}
-                                >
-                                  {selectedFile ? (
-                                    <>
-                                      <CheckCircle className="w-3.5 h-3.5" />
-                                      Uploaded
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Upload className="w-3.5 h-3.5" />
-                                      Upload
-                                    </>
-                                  )}
 
-                                  {!selectedFile && (
-                                    <input
-                                      type="file"
-                                      accept="image/*,.pdf"
-                                      className="hidden"
-                                      onChange={(e) => handleFileChange(e, doc.key)}
-                                    />
-                                  )}
-                                </label>
-                              </div>
-                            </div>
 
-                            {getError(doc.key) && (
-                              <p
-                                className="text-xs text-red-500 mt-2 error-text"
-                                data-error-field={doc.key}
-                              >
-                                {getError(doc.key)}
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })}
+].map((doc) => {
+  const selectedFile = files[doc.key];
+  const existingDocument = existingDocuments[doc.key];
+
+  const hasDocument =
+    Boolean(selectedFile) ||
+    Boolean(existingDocument);
+
+const documentName =
+  selectedFile?.name ||
+  (existingDocument
+    ? `${doc.label}.pdf`
+    : "");
+
+  return (
+    <div
+      key={doc.key}
+      className={`rounded-2xl border p-4 transition relative ${
+        getError(doc.key)
+          ? "border-red-300 bg-red-50/40"
+          : hasDocument
+          ? "border-emerald-200 bg-emerald-50/30"
+          : "border-slate-200 bg-white"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-4">
+
+        {/* DOCUMENT NAME */}
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-semibold text-slate-800">
+              {doc.label}
+            </p>
+
+            {doc.required && (
+              <span className="text-red-500 text-xs">
+                *
+              </span>
+            )}
+          </div>
+
+          {hasDocument ? (
+            <div className="mt-1 flex items-center gap-2 min-w-0">
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+
+              <p
+                className="text-xs text-emerald-700 font-medium truncate"
+                title={documentName}
+              >
+                {documentName}
+              </p>
+            </div>
+          ) : (
+            <p className="text-xs text-slate-400 mt-1">
+              {doc.required
+                ? "Required"
+                : "Optional"}{" "}
+              · PDF or image
+            </p>
+          )}
+        </div>
+
+        {/* ACTIONS */}
+        <div className="flex items-center gap-2 shrink-0">
+
+          {/* REMOVE / REPLACE BUTTON */}
+          {hasDocument && (
+  <button
+    type="button"
+    onClick={() => {
+      removeFile(doc.key);
+
+      setExistingDocuments((prev) => ({
+        ...prev,
+        [doc.key]: null,
+      }));
+    }}
+    title="Remove and replace document"
+    className="w-7 h-7 flex items-center justify-center text-slate-500 hover:text-slate-800 transition"
+  >
+    <X className="w-5 h-5" />
+  </button>
+)}
+
+
+
+
+
+
+          {/* UPLOAD / UPLOADED */}
+          <label
+            className={`h-9 px-3.5 rounded-lg inline-flex items-center gap-1.5 text-xs font-semibold cursor-pointer ${
+              hasDocument
+                ? "bg-emerald-100 text-emerald-700"
+                : "bg-blue-50 text-blue-700 hover:bg-blue-100"
+            }`}
+          >
+            {hasDocument ? (
+              <>
+                <CheckCircle className="w-3.5 h-3.5" />
+                Uploaded
+              </>
+            ) : (
+              <>
+                <Upload className="w-3.5 h-3.5" />
+                Upload
+              </>
+            )}
+
+            {/* ALWAYS keep file input available.
+                This allows replacing an existing document. */}
+            <input
+              type="file"
+              accept="image/*,.pdf"
+              className="hidden"
+              onChange={(e) =>
+                handleFileChange(e, doc.key)
+              }
+            />
+          </label>
+        </div>
+      </div>
+
+      {/* VALIDATION ERROR */}
+      {getError(doc.key) && (
+        <p
+          className="text-xs text-red-500 mt-2 error-text"
+          data-error-field={doc.key}
+        >
+          {getError(doc.key)}
+        </p>
+      )}
+    </div>
+  );
+})
+                      
+                      
+                      
+                      }
+
+
+
+
+
+
+
+                        
                     </div>
                   </div>
                 </section>
+
+
+
+
+
+
+
 
                 {/* 05 ENROLLMENT */}
                 <section className={sectionClass}>
@@ -2261,12 +2458,12 @@ data.append(
                         Enrollment Details
                       </h2>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        Select sport, batch and applicable fee structure
+                        Select the sport and batch for the player
                       </p>
                     </div>
                   </div>
 
-                  <div className="p-5 sm:p-6 space-y-5">
+                  <div className="p-5 sm:p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className={fieldLabel}>Sport *</label>
@@ -2274,15 +2471,28 @@ data.append(
                           name="sportId"
                           value={form.sportId}
                           onChange={handleSportChange}
-                          className={inputClass("sportId")}
+                          disabled={isEdit}
+                          className={`${inputClass(
+                            "sportId"
+                          )} disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed`}
                         >
                           <option value="">Select sport</option>
-                          {sports.map((sport) => (
-                            <option key={getSportId(sport)} value={getSportId(sport)}>
+                          {availableSports.map((sport) => (
+                            <option
+                              key={getSportId(sport)}
+                              value={getSportId(sport)}
+                            >
                               {getSportName(sport)}
                             </option>
                           ))}
                         </select>
+
+                        {isEdit && (
+                          <p className="text-[11px] text-slate-400 mt-1.5">
+                            Sport cannot be changed while editing.
+                          </p>
+                        )}
+
                         {errorText("sportId")}
                       </div>
 
@@ -2292,89 +2502,69 @@ data.append(
                           name="batchId"
                           value={form.batchId}
                           onChange={handleBatchChange}
-                          disabled={!form.sportId}
-                          className={`${inputClass("batchId")} disabled:bg-slate-50 disabled:text-slate-400`}
+                          disabled={!form.sportId || isEdit}
+                          className={`${inputClass(
+                            "batchId"
+                          )} disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed`}
                         >
                           <option value="">
-                            {form.sportId ? "Select batch" : "Select sport first"}
+                            {form.sportId
+                              ? "Select batch"
+                              : "Select sport first"}
                           </option>
+
                           {availableBatches.map((batch) => (
                             <option key={batch.id} value={batch.id}>
-                              {getBatchName(batch)} — {batch.availableSeats} seats available
+                              {getBatchName(batch)}
                             </option>
                           ))}
                         </select>
 
-                        {selectedBatch && (
-                          <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-slate-500">
-                            <span>Capacity: {selectedBatch.capacity}</span>
-                            <span>Current: {selectedBatch.currentPlayers}</span>
-                            <span className="text-emerald-600 font-semibold">
-                              Available: {selectedBatch.availableSeats}
-                            </span>
-                          </div>
+                        {isEdit && (
+                          <p className="text-[11px] text-slate-400 mt-1.5">
+                            Batch cannot be changed while editing.
+                          </p>
                         )}
+
                         {errorText("batchId")}
                       </div>
                     </div>
+                  </div>
+                </section>
 
-                    <div>
-                      <label className={fieldLabel}>Fee Structure *</label>
-                      <select
-                        name="feeStructureId"
-                        value={form.feeStructureId}
-                        onChange={handleFeeChange}
-                        disabled={!form.batchId}
-                        className={`${inputClass("feeStructureId")} disabled:bg-slate-50 disabled:text-slate-400`}
-                      >
-                        <option value="">
-                          {form.batchId ? "Select fee structure" : "Select batch first"}
-                        </option>
-                        {fees.map((fee) => (
-                          <option key={getFeeId(fee)} value={getFeeId(fee)}>
-                            ₹{money(fee.amount)} — {getFeeDurationText(fee)}
-                          </option>
-                        ))}
-                      </select>
-
-                      {!fees.length && form.batchId && (
-                        <p className="text-xs text-red-500 mt-2">
-                          No active fee structures found for this sport.
+                {/* 06 PAYMENT */}
+                {!isEdit && selectedFee && (
+                  <section className={sectionClass}>
+                    <div className="px-5 sm:px-6 py-5 border-b border-slate-100 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                        <CreditCard className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold text-blue-600 tracking-[0.12em] uppercase">
+                          Step 06
                         </p>
-                      )}
-                      {errorText("feeStructureId")}
+                        <h2 className="text-base sm:text-lg font-bold text-slate-900">
+                          Payment
+                        </h2>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Select the payment plan and payment method in this same form
+                        </p>
+                      </div>
                     </div>
 
-                    {selectedFee && (
-                      <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                          <div>
-                            <p className="text-[10px] uppercase tracking-wider font-bold text-blue-600">
-                              Selected Fee
-                            </p>
-                            <p className="text-sm font-semibold text-slate-900 mt-1">
-                              {getFeeDurationText(selectedFee)}
-                            </p>
-                          </div>
-                          <div className="text-left sm:text-right">
-                            <p className="text-2xl font-bold text-blue-700">
-                              ₹{money(selectedFee.amount)}
-                            </p>
-                            <p className="text-xs text-blue-600 mt-0.5">
-                              Total enrollment fee
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {selectedFee && (
+                    <div className="p-5 sm:p-6 space-y-5">
+                      {/* PAYMENT PLAN */}
                       <div>
                         <label className={fieldLabel}>Payment Plan *</label>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <button
                             type="button"
-                            onClick={() => setPaymentPlan("ONE_TIME")}
+                            onClick={() => {
+                              setPaymentPlan("ONE_TIME");
+                              setPaymentMethod("");
+                              setQrData(null);
+                              setUpiScreenshot(null);
+                            }}
                             className={`rounded-2xl border-2 p-5 text-left transition ${
                               paymentPlan === "ONE_TIME"
                                 ? "border-blue-600 bg-blue-50"
@@ -2387,7 +2577,7 @@ data.append(
                                   One-time payment
                                 </p>
                                 <p className="text-xs text-slate-500 mt-1">
-                                  Pay the complete fee in one payment.
+                                  Complete course fee in one payment. Applicable batch discount is applied.
                                 </p>
                               </div>
                               <div className={`w-5 h-5 rounded-full border-2 shrink-0 ${
@@ -2400,7 +2590,12 @@ data.append(
 
                           <button
                             type="button"
-                            onClick={() => setPaymentPlan("THREE_INSTALLMENTS")}
+                            onClick={() => {
+                              setPaymentPlan("THREE_INSTALLMENTS");
+                              setPaymentMethod("");
+                              setQrData(null);
+                              setUpiScreenshot(null);
+                            }}
                             className={`rounded-2xl border-2 p-5 text-left transition ${
                               paymentPlan === "THREE_INSTALLMENTS"
                                 ? "border-blue-600 bg-blue-50"
@@ -2413,7 +2608,7 @@ data.append(
                                   3 installments
                                 </p>
                                 <p className="text-xs text-slate-500 mt-1">
-                                  Split the fee into three scheduled payments.
+                                  No discount is applicable. The total is divided into three payments.
                                 </p>
                               </div>
                               <div className={`w-5 h-5 rounded-full border-2 shrink-0 ${
@@ -2424,18 +2619,208 @@ data.append(
                             </div>
                           </button>
                         </div>
-
-                        {!paymentPlan && (
-                          <p className="text-xs text-red-500 mt-2">
-                            Select a payment plan.
-                          </p>
-                        )}
+                        {errorText("paymentPlan")}
                       </div>
-                    )}
-                  </div>
-                </section>
 
-                {/* 06 ACCOUNT */}
+                      {/* FEE SUMMARY */}
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <p className="text-[10px] uppercase tracking-wider font-bold text-blue-600">
+                              Registration Fee
+                            </p>
+                            <p className="text-sm font-semibold text-slate-900 mt-1">
+                              {getFeeDurationText(selectedFee)}
+                            </p>
+                          </div>
+                          <p className="text-2xl font-bold text-blue-700">
+                            ₹{money(totalRegistrationFee)}
+                          </p>
+                        </div>
+
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">Course Fee</span>
+                            <span className="font-medium">₹{money(originalCourseFee)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">Discount</span>
+                            <span className={`font-medium ${
+                              paymentPlan === "THREE_INSTALLMENTS"
+                                ? "text-slate-700"
+                                : "text-emerald-600"
+                            }`}>
+                              ₹{money(registrationDiscount)}
+                            </span>
+                          </div>
+                          {paymentPlan === "THREE_INSTALLMENTS" && (
+                            <p className="rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 text-xs font-semibold text-amber-800">
+                              No discount is applicable for 3 installments.
+                            </p>
+                          )}
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">Final Course Fee</span>
+                            <span className="font-semibold">₹{money(finalCourseFee)}</span>
+                          </div>
+                          <div className="border-t border-slate-200 pt-3 flex justify-between">
+                            <span className="font-semibold text-slate-800">Total</span>
+                            <span className="font-bold text-blue-700">
+                              ₹{money(totalRegistrationFee)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {paymentPlan === "THREE_INSTALLMENTS" &&
+                          installmentAmounts.length === 3 && (
+                            <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              {installmentAmounts.map((amount, index) => (
+                                <div
+                                  key={index}
+                                  className="rounded-xl bg-white border border-slate-200 p-4"
+                                >
+                                  <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">
+                                    Installment {index + 1}
+                                  </p>
+                                  <p className="text-lg font-bold text-slate-900 mt-1">
+                                    ₹{money(amount)}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                      </div>
+
+                      {/* PAYMENT METHOD */}
+                      {paymentPlan && (
+                        <div>
+                          <label className={fieldLabel}>Payment Method *</label>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <button
+                              type="button"
+                              onClick={() => handlePaymentMethodChange("CASH")}
+                              className={`rounded-2xl border-2 p-5 text-left transition ${
+                                paymentMethod === "CASH"
+                                  ? "border-emerald-600 bg-emerald-50"
+                                  : "border-slate-200 bg-white hover:border-slate-300"
+                              }`}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <p className="text-base font-semibold">Cash</p>
+                                  <p className="text-xs text-slate-500 mt-1">
+                                    Payment received at the reception counter.
+                                  </p>
+                                </div>
+                                <CreditCard className="w-5 h-5 text-emerald-600" />
+                              </div>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handlePaymentMethodChange("UPI")}
+                              className={`rounded-2xl border-2 p-5 text-left transition ${
+                                paymentMethod === "UPI"
+                                  ? "border-blue-600 bg-blue-50"
+                                  : "border-slate-200 bg-white hover:border-slate-300"
+                              }`}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <p className="text-base font-semibold">UPI</p>
+                                  <p className="text-xs text-slate-500 mt-1">
+                                    Generate QR and upload payment proof.
+                                  </p>
+                                </div>
+                                <QrCode className="w-5 h-5 text-blue-600" />
+                              </div>
+                            </button>
+                          </div>
+                          {errorText("paymentMethod")}
+                        </div>
+                      )}
+
+                      {/* UPI */}
+                      {paymentMethod === "UPI" && (
+                        <div className="rounded-2xl border border-blue-100 bg-blue-50/30 p-5">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div>
+                              <p className="text-sm font-semibold text-slate-900">
+                                UPI Payment
+                              </p>
+                              <p className="text-xs text-slate-500 mt-1">
+                                Amount: ₹{money(paymentAmount)}
+                              </p>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={handleGenerateQr}
+                              disabled={qrLoading || !paymentAmount}
+                              className="h-11 px-5 inline-flex items-center justify-center gap-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50"
+                            >
+                              {qrLoading ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  Generating...
+                                </>
+                              ) : (
+                                <>
+                                  <QrCode className="w-4 h-4" />
+                                  Generate QR
+                                </>
+                              )}
+                            </button>
+                          </div>
+
+                          {qrData?.qrCodeBase64 && (
+                            <div className="mt-5 grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-5">
+                              <div className="rounded-2xl bg-white border border-slate-200 p-4 flex flex-col items-center">
+                                <img
+                                  src={`data:image/png;base64,${qrData.qrCodeBase64}`}
+                                  alt="UPI QR Code"
+                                  className="w-56 h-56 bg-white p-2 rounded-xl"
+                                />
+                                <p className="text-xl font-bold mt-3">
+                                  ₹{qrData.amount}
+                                </p>
+                                <p className="text-xs text-slate-500 mt-1">
+                                  {qrData.payeeName}
+                                </p>
+                                <p className="text-xs text-slate-400 mt-1">
+                                  {qrData.upiId}
+                                </p>
+                              </div>
+
+                              <label className="min-h-40 border-2 border-dashed border-slate-200 rounded-2xl bg-white flex flex-col items-center justify-center gap-2 px-5 py-6 cursor-pointer hover:bg-slate-50">
+                                <Upload className="w-6 h-6 text-blue-600" />
+                                <span className="text-sm font-medium text-slate-700 text-center">
+                                  {upiScreenshot
+                                    ? upiScreenshot.name
+                                    : "Upload UPI payment screenshot"}
+                                </span>
+                                <span className="text-xs text-slate-400">
+                                  PNG, JPG or JPEG
+                                </span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) =>
+                                    setUpiScreenshot(
+                                      e.target.files?.[0] || null
+                                    )
+                                  }
+                                />
+                              </label>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                )}
+
+                {/* 07 ACCOUNT */}
                 <section className={sectionClass}>
                   <div className="px-5 sm:px-6 py-5 border-b border-slate-100 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
@@ -2504,43 +2889,34 @@ data.append(
                   </div>
                 </section>
 
-                {/* ACTION BAR */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">
-                      {isEdit ? "Ready to update player" : "Ready to continue"}
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      {isEdit
-                        ? "Review the details before saving changes."
-                        : "Player and enrollment details will be saved before payment."}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col-reverse sm:flex-row gap-2.5">
-                    <button
-                      type="button"
-                      onClick={() => navigate("/receptionist/players")}
-                      disabled={loading}
-                      className="min-w-[130px] h-11 px-5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 transition"
-                    >
-                      Cancel
-                    </button>
+                {/* FINAL ACTION */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-5">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">
+                        {isEdit ? "Ready to update player" : "Ready to register player"}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        {isEdit
+                          ? "Review the details before saving changes."
+                          : "All player, enrollment and payment details will be submitted together."}
+                      </p>
+                    </div>
 
                     <button
                       type="submit"
-                      disabled={loading || (!isEdit && !paymentPlan)}
-                      className="min-w-[210px] h-11 inline-flex items-center justify-center gap-2 px-6 bg-blue-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                      disabled={loading || (!isEdit && (!paymentPlan || !paymentMethod))}
+                      className="min-w-[220px] h-11 inline-flex items-center justify-center gap-2 px-6 bg-blue-600 text-white rounded-xl text-sm font-semibold shadow-sm hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {loading ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          {isEdit ? "Updating..." : "Saving..."}
+                          {isEdit ? "Updating..." : "Registering..."}
                         </>
                       ) : (
                         <>
                           <CheckCircle2 className="w-4 h-4" />
-                          {isEdit ? "Update Player" : "Save & Continue to Payment"}
+                          {isEdit ? "Update Player" : "Add Player"}
                         </>
                       )}
                     </button>
@@ -2549,358 +2925,14 @@ data.append(
               </div>
             </div>
           </form>
-        )}
-
-        {/* =====================================================
-            STEP 2 - PAYMENT
-        ===================================================== */}
-        {step === "PAYMENT" && (
-          <div className="space-y-5">
-            {/* PAYMENT HEADER */}
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                  <p className="text-[11px] font-semibold text-blue-600 uppercase tracking-wider">
-                    Final Step
-                  </p>
-                  <h2 className="text-xl font-bold text-slate-900 mt-1">
-                    Collect Payment
-                  </h2>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Review enrollment and record the first payment.
-                  </p>
-                </div>
-
-                <div className="rounded-2xl bg-blue-50 border border-blue-100 px-5 py-4 min-w-[190px]">
-                  <p className="text-[10px] uppercase tracking-wider font-semibold text-blue-600">
-                    Amount Due
-                  </p>
-                  <p className="text-3xl font-bold text-blue-700 mt-1">
-                    ₹{money(paymentAmount)}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
-                <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
-                  <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">
-                    Player
-                  </p>
-                  <p className="text-sm font-semibold text-slate-800 mt-1">
-                    {createdPlayer?.firstName} {createdPlayer?.lastName}
-                  </p>
-                </div>
-
-                <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
-                  <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">
-                    Enrollment
-                  </p>
-                  <p className="text-sm font-semibold text-slate-800 mt-1">
-                    #{createdEnrollment?.id}
-                  </p>
-                </div>
-
-                <div className="rounded-xl bg-slate-50 border border-slate-100 p-4">
-                  <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">
-                    Plan
-                  </p>
-                  <p className="text-sm font-semibold text-slate-800 mt-1">
-                    {paymentPlan === "THREE_INSTALLMENTS"
-                      ? "3 Installments"
-                      : "One Time"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* INSTALLMENTS */}
-            {paymentPlan === "THREE_INSTALLMENTS" && (
-              <div className={sectionClass}>
-                {sectionTitle(
-                  "01",
-                  <CreditCard className="w-5 h-5" />,
-                  "Select Installment",
-                  "Choose the installment being paid today"
-                )}
-
-                <div className="p-5 sm:p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {installments.map((item) => {
-                      const pending =
-                        String(item.status).toUpperCase() === "PENDING";
-
-                      const selected =
-                        String(selectedInstallment?.id) === String(item.id);
-
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          disabled={!pending}
-                          onClick={() =>
-                            handleInstallmentChange({
-                              target: { value: item.id },
-                            })
-                          }
-                          className={`rounded-2xl border-2 p-4 text-left transition ${
-                            selected
-                              ? "border-blue-600 bg-blue-50"
-                              : pending
-                              ? "border-slate-200 bg-white hover:border-slate-300"
-                              : "border-slate-100 bg-slate-50 opacity-60"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="text-xs font-semibold text-slate-500">
-                              Installment {item.installmentNumber}
-                            </p>
-                            <span
-                              className={`text-[10px] font-semibold uppercase ${
-                                pending
-                                  ? "text-amber-600"
-                                  : "text-emerald-600"
-                              }`}
-                            >
-                              {item.status}
-                            </span>
-                          </div>
-                          <p className="text-xl font-bold text-slate-900 mt-2">
-                            ₹{money(item.amount)}
-                          </p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* PAYMENT METHOD */}
-            <div className={sectionClass}>
-              {sectionTitle(
-                paymentPlan === "THREE_INSTALLMENTS" ? "02" : "01",
-                <CreditCard className="w-5 h-5" />,
-                "Payment Method",
-                "Select how the customer is paying"
-              )}
-
-              <div className="p-5 sm:p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => handlePaymentMethodChange("CASH")}
-                    className={`rounded-2xl border-2 p-5 text-left transition ${
-                      paymentMethod === "CASH"
-                        ? "border-emerald-600 bg-emerald-50"
-                        : "border-slate-200 bg-white hover:border-slate-300"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-base font-semibold">Cash</p>
-                        <p className="text-xs text-slate-500 mt-1">
-                          Payment received at the reception counter.
-                        </p>
-                      </div>
-                      <CreditCard className="w-5 h-5 text-emerald-600" />
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handlePaymentMethodChange("UPI")}
-                    className={`rounded-2xl border-2 p-5 text-left transition ${
-                      paymentMethod === "UPI"
-                        ? "border-blue-600 bg-blue-50"
-                        : "border-slate-200 bg-white hover:border-slate-300"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-base font-semibold">UPI</p>
-                        <p className="text-xs text-slate-500 mt-1">
-                          Generate QR, receive payment and upload proof.
-                        </p>
-                      </div>
-                      <QrCode className="w-5 h-5 text-blue-600" />
-                    </div>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* UPI */}
-            {paymentMethod === "UPI" && (
-              <div className="bg-white rounded-2xl border border-blue-100 shadow-sm overflow-hidden">
-                <div className="px-5 sm:px-6 py-4 border-b border-slate-100 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <QrCode className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm sm:text-base font-semibold">
-                      UPI Payment
-                    </h2>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      Generate the QR for ₹{money(paymentAmount)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="p-5 sm:p-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-2xl bg-slate-50 border border-slate-100 p-4">
-                    <div>
-                      <p className="text-xs text-slate-500">
-                        Amount to collect
-                      </p>
-                      <p className="text-2xl font-bold text-slate-900 mt-1">
-                        ₹{money(paymentAmount)}
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleGenerateQr}
-                      disabled={qrLoading || !paymentAmount}
-                      className="h-11 px-5 inline-flex items-center justify-center gap-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      {qrLoading ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <QrCode className="w-4 h-4" />
-                          Generate QR
-                        </>
-                      )}
-                    </button>
-                  </div>
-
-                  {qrData?.qrCodeBase64 && (
-                    <div className="mt-5 grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6 items-start">
-                      <div className="rounded-2xl bg-slate-50 border border-slate-100 p-5 flex flex-col items-center">
-                        <img
-                          src={`data:image/png;base64,${qrData.qrCodeBase64}`}
-                          alt="UPI QR Code"
-                          className="w-64 h-64 bg-white p-3 rounded-2xl shadow-sm"
-                        />
-                        <p className="text-2xl font-bold text-slate-900 mt-4">
-                          ₹{qrData.amount}
-                        </p>
-                        <p className="text-sm font-medium text-slate-700 mt-1">
-                          {qrData.payeeName}
-                        </p>
-                        <p className="text-xs text-slate-500 mt-1">
-                          UPI: {qrData.upiId}
-                        </p>
-                      </div>
-
-                      <div className="rounded-2xl border border-slate-200 p-5">
-                        <p className="text-sm font-semibold text-slate-900">
-                          Payment proof
-                        </p>
-                        <p className="text-xs text-slate-500 mt-1">
-                          Upload the screenshot after the UPI payment is completed.
-                        </p>
-
-                        <label className="mt-4 min-h-36 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-2 px-5 py-6 cursor-pointer hover:bg-slate-50">
-                          <Upload className="w-6 h-6 text-blue-600" />
-                          <span className="text-sm font-medium text-slate-700 text-center">
-                            {upiScreenshot
-                              ? upiScreenshot.name
-                              : "Click to upload payment screenshot"}
-                          </span>
-                          <span className="text-xs text-slate-400">
-                            PNG, JPG or JPEG
-                          </span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) =>
-                              setUpiScreenshot(
-                                e.target.files?.[0] || null
-                              )
-                            }
-                          />
-                        </label>
-
-                        {upiScreenshot && (
-                          <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-2">
-                            <p className="text-xs text-emerald-700 font-medium truncate">
-                              ✓ {upiScreenshot.name}
-                            </p>
-                            <button
-                              type="button"
-                              onClick={() => setUpiScreenshot(null)}
-                              className="w-7 h-7 rounded-lg text-red-500 hover:bg-red-50 flex items-center justify-center shrink-0"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* PAYMENT ACTIONS */}
-            <div className="sticky bottom-3 z-20 bg-white/95 backdrop-blur rounded-2xl border border-slate-200 shadow-lg p-4 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  setStep("PLAYER");
-                  setPaymentMethod("");
-                  setQrData(null);
-                  setUpiScreenshot(null);
-                }}
-                disabled={loading}
-                className="px-5 py-2.5 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                Back to Player Details
-              </button>
-
-              <button
-                type="button"
-                onClick={handleCompletePayment}
-                disabled={
-                  loading ||
-                  !paymentMethod ||
-                  (paymentMethod === "UPI" && !upiScreenshot)
-                }
-                className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-60"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="w-4 h-4" />
-                    Complete Registration
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* =====================================================
-          CAMERA MODAL
-      ===================================================== */}
+      {/* CAMERA MODAL */}
       {cameraOpen && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold text-gray-900">
-                Live Camera
-              </h3>
-
+              <h3 className="font-semibold text-gray-900">Live Camera</h3>
               <button
                 type="button"
                 onClick={closeCamera}

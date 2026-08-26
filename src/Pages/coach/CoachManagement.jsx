@@ -30,7 +30,7 @@ import {
   getCoachById,
   viewCoachFile,
   downloadCoachFile,
-} from "./coachService";
+} from "./CoachService";
 
 const API_BASE = "http://localhost:8080";
 
@@ -64,6 +64,18 @@ export default function CoachManagement() {
   const [viewPhotoUrl, setViewPhotoUrl] = useState(null);
   const [coachPhotoUrls, setCoachPhotoUrls] = useState({});
 
+
+
+  const getSportName = (coach) => {
+
+  return (
+    coach?.sportName ||
+    coach?.sport?.sportsName ||
+    coach?.sport?.sportName ||
+    "-"
+  );
+
+};  
 
   // =========================================================
   // LOAD COACHES
@@ -405,13 +417,18 @@ const handleDownloadDocument = async (
       coach?.mobileNumber || ""
     ).toLowerCase();
 
+      const sport =
+  getSportName(coach).toLowerCase();
+
     const searchLower =
       search.toLowerCase().trim();
 
-    const matchesSearch =
-      name.includes(searchLower) ||
-      email.includes(searchLower) ||
-      mobile.includes(searchLower);
+
+   const matchesSearch =
+  name.includes(searchLower) ||
+  email.includes(searchLower) ||
+  mobile.includes(searchLower) ||
+  sport.includes(searchLower);
 
     const status = getStatus(coach);
 
@@ -788,11 +805,13 @@ const closeView = () => {
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Contact
                 </th>
+<th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+  Sport
+</th>
 
-                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Experience
-                </th>
-
+<th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+  Experience
+</th>
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Qualification
                 </th>
@@ -913,15 +932,27 @@ const photoUrl =
 
 
                       {/* Experience */}
+{/* Sport */}
 
-                      <td className="px-6 py-4 text-sm text-slate-600">
+<td className="px-6 py-4 text-sm text-slate-600">
 
-                        {coach.experience !=
-                        null
-                          ? `${coach.experience} yrs`
-                          : "-"}
+  {getSportName(coach)}
 
-                      </td>
+</td>
+
+
+{/* Experience */}
+
+<td className="px-6 py-4 text-sm text-slate-600">
+
+  {coach.experience !=
+  null
+    ? `${coach.experience} yrs`
+    : "-"}
+
+</td>
+
+
 
 
                       {/* Qualification */}
@@ -1063,7 +1094,7 @@ const photoUrl =
                 <tr>
 
                   <td
-                    colSpan="7"
+                    colSpan="8"
                     className="px-6 py-16 text-center"
                   >
 
@@ -1442,12 +1473,24 @@ const photoUrl =
             </div>
 
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-7">
 
-              <DetailItem
-                label="Highest Qualification"
-                value={viewCoach.qualification || "-"}
-              />
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-7">
+
+  <DetailItem
+    label="Sport"
+    value={getSportName(viewCoach)}
+  />
+
+  <DetailItem
+    label="Highest Qualification"
+    value={viewCoach.qualification || "-"}
+  />
+
+
+
+
+
 
               <DetailItem
                 label="Experience"

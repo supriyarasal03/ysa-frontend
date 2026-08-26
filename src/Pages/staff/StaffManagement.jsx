@@ -66,6 +66,8 @@ export default function StaffManagement() {
   const [viewStaff, setViewStaff] = useState(null);
   const [viewLoading, setViewLoading] = useState(false);
 
+
+
   const loadStaff = async () => {
     try {
       setLoading(true);
@@ -76,7 +78,17 @@ export default function StaffManagement() {
         : Array.isArray(res)
         ? res
         : [];
-      setStaffList(list);
+
+
+      // Latest staff record first
+list.sort((a, b) => (b.id || 0) - (a.id || 0));
+
+setStaffList(list);
+setCurrentPage(1);
+
+
+
+
     } catch (err) {
       console.error(err);
       setError(err?.message || "Failed to load staff");

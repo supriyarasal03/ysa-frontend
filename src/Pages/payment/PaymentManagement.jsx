@@ -1060,12 +1060,4 @@ const DetailItem = ({
   );
 };
 
-
-
-
-
-
-
-
-
 export default PaymentManagement;

@@ -17,31 +17,25 @@ import {
 const ReceptionistLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
-
- const navItems = [
+const navItems = [
   {
     name: "Dashboard",
     path: "/receptionist",
     icon: LayoutDashboard,
   },
-
   {
     name: "Players",
     path: "/receptionist/players",
     icon: Users,
   },
-
   {
     name: "Fees Collection",
     path: "/receptionist/fees",
     icon: CreditCard,
   },
 
-  {
-    name: "Settings",
-    path: "/receptionist/settings",
-    icon: Settings,
-  },
+ 
+  
 ];
 
   const handleLogout = () => {

@@ -6,7 +6,7 @@ import {
   Save,
   X,
   Users,
-  CalendarRange,
+  
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
@@ -236,6 +236,12 @@ export default function SportForm() {
     };
 
     try {
+
+
+
+
+
+      
       if (isEdit) {
         const response = await updateSport(id, payload);
 
@@ -247,9 +253,16 @@ export default function SportForm() {
           };
         }
 
-        setSuccessMessage(
-          response?.message || "Sport updated successfully."
-        );
+       setSuccessMessage(
+  response?.message || "Sport updated successfully."
+);
+
+setTimeout(() => {
+  navigate("/admin/sport-management");
+}, 1000);
+
+
+
       } else {
         const response = await addSport(payload);
 
@@ -262,14 +275,15 @@ export default function SportForm() {
         }
 
         setSuccessMessage(
-          response?.message || "Sport added successfully."
-        );
+  response?.message || "Sport added successfully."
+);
 
-        setFormData({
-          sportsName: "",
-          minAge: "",
-          maxAge: "",
-        });
+setTimeout(() => {
+  navigate("/admin/sport-management");
+}, 2000);
+
+
+
       }
     } catch (error) {
       console.error("Sport save error:", error);
@@ -325,14 +339,17 @@ export default function SportForm() {
       </div>
     ) : null;
 
-  const inputClass = (name) =>
-    `w-full h-12 px-4 rounded-xl border bg-white text-sm text-slate-800 placeholder:text-slate-400
-     focus:outline-none focus:ring-2 transition
-     ${
-       errors[name]
-         ? "border-rose-400 focus:border-rose-400 focus:ring-rose-100"
-         : "border-slate-200 focus:border-sky-500 focus:ring-sky-100"
-     }`;
+const inputClass = (name) =>
+  `w-full h-12 px-4 rounded-xl border bg-white text-sm text-slate-800 placeholder:text-slate-400
+   focus:outline-none focus:ring-2 transition
+   ${
+     errors[name]
+       ? "border-rose-400 focus:border-rose-400 focus:ring-rose-100"
+       : "border-slate-200 focus:border-sky-500 focus:ring-sky-100"
+   }`;
+
+
+
 
   if (fetching) {
     return (
@@ -418,19 +435,23 @@ export default function SportForm() {
               </label>
 
               <div className="relative">
-                <Trophy className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+               <Trophy className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
 
-                <input
-                  type="text"
-                  name="sportsName"
-                  value={formData.sportsName}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  maxLength={15}
-                  autoComplete="off"
-                  placeholder="e.g. Cricket"
-                  className={`${inputClass("sportsName")} pl-11`}
-                />
+
+<input
+  type="text"
+  name="sportsName"
+  value={formData.sportsName}
+  onChange={handleChange}
+  onBlur={handleBlur}
+  maxLength={15}
+  autoComplete="off"
+  placeholder="e.g. Cricket"
+  className={inputClass("sportsName")}
+ 
+/>  
+
+
               </div>
 
               <div className="flex justify-between items-start">
@@ -442,91 +463,99 @@ export default function SportForm() {
               </div>
             </div>
 
-            {/* Age Range */}
-            <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-5 md:p-6">
-              <div className="flex items-center gap-2 mb-5">
-                <div className="w-9 h-9 rounded-lg bg-sky-50 flex items-center justify-center">
-                  <Users className="w-4 h-4 text-sky-600" />
-                </div>
 
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-700">
-                    Eligible Age Group
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Define the minimum and maximum player age.
-                  </p>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-                {/* Minimum Age */}
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Minimum Age <span className="text-rose-500">*</span>
-                  </label>
 
-                  <div className="relative">
-                    <CalendarRange className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
 
-                    <input
-                      type="text"
-                      name="minAge"
-                      value={formData.minAge}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      inputMode="numeric"
-                      maxLength={3}
-                      placeholder="e.g. 8"
-                      className={`${inputClass("minAge")} pl-11`}
-                    />
-                  </div>
 
-                  <ErrorText name="minAge" />
-                </div>
 
-                {/* Maximum Age */}
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Maximum Age <span className="text-rose-500">*</span>
-                  </label>
+{/* Age Range */}
+<div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-5 md:p-6">
+  <div className="flex items-center gap-2 mb-5">
+    <div className="w-9 h-9 rounded-lg bg-sky-50 flex items-center justify-center">
+      <Users className="w-4 h-4 text-sky-600" />
+    </div>
 
-                  <div className="relative">
-                    <CalendarRange className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+    <div>
+      <h3 className="text-sm font-semibold text-slate-700">
+        Eligible Age Group
+      </h3>
 
-                    <input
-                      type="text"
-                      name="maxAge"
-                      value={formData.maxAge}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      inputMode="numeric"
-                      maxLength={3}
-                      placeholder="e.g. 18"
-                      className={`${inputClass("maxAge")} pl-11`}
-                    />
-                  </div>
+      <p className="text-xs text-slate-400 mt-0.5">
+        Define the minimum and maximum player age.
+      </p>
+    </div>
+  </div>
 
-                  <ErrorText name="maxAge" />
-                </div>
-              </div>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-              {/* Valid range indicator */}
-              {formData.minAge !== "" &&
-                formData.maxAge !== "" &&
-                Number(formData.minAge) <= Number(formData.maxAge) &&
-                !errors.minAge &&
-                !errors.maxAge && (
-                  <div className="mt-4 flex items-center gap-2 text-xs text-emerald-600">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>
-                      Eligible players: {formData.minAge} to{" "}
-                      {formData.maxAge} years
-                    </span>
-                  </div>
-                )}
-            </div>
+    {/* Minimum Age */}
+    <div>
+      <label className="block text-sm font-semibold text-slate-700 mb-2">
+        Minimum Age <span className="text-rose-500">*</span>
+      </label>
+
+      <input
+        type="text"
+        name="minAge"
+        value={formData.minAge}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        inputMode="numeric"
+        maxLength={3}
+        placeholder="e.g. 8"
+        className={inputClass("minAge")}
+      />
+
+      <ErrorText name="minAge" />
+    </div>
+
+    {/* Maximum Age */}
+    <div>
+      <label className="block text-sm font-semibold text-slate-700 mb-2">
+        Maximum Age <span className="text-rose-500">*</span>
+      </label>
+
+      <input
+        type="text"
+        name="maxAge"
+        value={formData.maxAge}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        inputMode="numeric"
+        maxLength={3}
+        placeholder="e.g. 18"
+        className={inputClass("maxAge")}
+      />
+
+      <ErrorText name="maxAge" />
+    </div>
+
+  </div>
+
+  {/* Valid range indicator */}
+  {formData.minAge !== "" &&
+    formData.maxAge !== "" &&
+    Number(formData.minAge) <= Number(formData.maxAge) &&
+    !errors.minAge &&
+    !errors.maxAge && (
+      <div className="mt-4 flex items-center gap-2 text-xs text-emerald-600">
+        <CheckCircle2 className="w-4 h-4" />
+
+        <span>
+          Eligible players: {formData.minAge} to{" "}
+          {formData.maxAge} years
+        </span>
+      </div>
+    )}
+</div>
+
+
+
+
+
+
 
             {/* Success */}
             {successMessage && (

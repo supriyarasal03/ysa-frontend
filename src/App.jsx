@@ -6,24 +6,24 @@ import CoachDashboard from "./Pages/dashboard/CoachDashboard";
 import PlayerDashboard from "./Pages/dashboard/PlayerDashboard";
 import ParentDashboard from "./Pages/dashboard/ParentDashboard";
 
-// Public Pages
+// Public
 import HomePage from "./Pages/public/HomePage";
 import CoachRegistration from "./Pages/public/CoachRegistration";
 import AllSports from "./Pages/public/AllSports";
 
-// Auth Pages
+// Auth
 import Login from "./Pages/auth/Login";
 import ForgotPassword from "./Pages/auth/ForgotPassword";
 import VerifyOtp from "./Pages/auth/VerifyOtp";
 import ResetPassword from "./Pages/auth/ResetPassword";
 
-// Staff
-import StaffManagement from "./Pages/staff/StaffManagement";
-import StaffForm from "./Pages/staff/StaffForm";
-
 // Layouts
 import AdminLayout from "./components/layout/AdminLayout";
 import ReceptionistLayout from "./components/layout/ReceptionistLayout";
+
+// Staff
+import StaffManagement from "./Pages/staff/StaffManagement";
+import StaffForm from "./Pages/staff/StaffForm";
 
 // Sport
 import SportManagmnet from "./sport/SportManagmnet";
@@ -37,7 +37,7 @@ import CoachForm from "./Pages/coach/CoachForm";
 import BatchManagment from "./Pages/batch/BatchManagment";
 import BatchForm from "./Pages/batch/BatchForm";
 
-// Other Dashboards
+// Other dashboards
 import InnventoryManagerDashboard from "./Pages/dashboard/InnventoryManagerDashboard";
 import CleaningStaffDashboard from "./Pages/dashboard/CleaningStaffDashboard";
 import ReceptionistDashboard from "./Pages/dashboard/ReceptionistDashboard";
@@ -46,26 +46,31 @@ import ReceptionistDashboard from "./Pages/dashboard/ReceptionistDashboard";
 import PlayerManagement from "./Pages/player/PlayerManagement";
 import PlayerForm from "./Pages/player/PlayerForm";
 
-// Coach Sport Assignment
+// Coach sport assignment
 import CoachSportManagment from "./Pages/coachSportAssignment/CoachSportManagment";
 import CoachSportAssignmentForm from "./Pages/coachSportAssignment/CoachSportAssignmentForm";
 
 // Fees
 import FeesManagment from "./Pages/fees/FeeManagment";
 import FeesForm from "./Pages/fees/FeeForm";
+import FeeDetails from "./Pages/fees/FeeDetails";
 
 // Payment
 import PaymentManagement from "./Pages/payment/PaymentManagement";
 import PaymentForm from "./Pages/payment/PaymentForm";
 
-import FeeDetails from "./Pages/fees/FeeDetails";
-import InstallmentPayment from "./Pages/fees/InstallmentPayment";
+
+import InventoryManagerLayout from "./components/layout/InvetoryManagerLayout";
+import InventoryManagement from "./Pages/inventory/InventoryManagement";
+import AddInventory from "./Pages/inventory/AddInventory";
+
+import ReceiveStock from "./Pages/inventory/ReceiveStock";
+import InventoryTransactionHistory from "./Pages/inventory/InventoryTransactionHistory";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-
         {/* PUBLIC */}
         <Route path="/" element={<HomePage />} />
         <Route path="/home" element={<HomePage />} />
@@ -83,75 +88,79 @@ function App() {
         <Route path="/player-dashboard" element={<PlayerDashboard />} />
         <Route path="/parent-dashboard" element={<ParentDashboard />} />
 
-
-
-
-
         {/* ADMIN */}
         <Route element={<AdminLayout />}>
           <Route path="/admin" element={<AdminDashboar />} />
 
-          <Route
-            path="/admin/staff-management"
-            element={<StaffManagement />}
-          />
+          <Route path="/admin/staff-management" element={<StaffManagement />} />
           <Route path="/staff-form" element={<StaffForm />} />
           <Route path="/staff-form/:id" element={<StaffForm />} />
 
-          <Route
-            path="/admin/sport-management"
-            element={<SportManagmnet />}
-          />
+          <Route path="/admin/sport-management" element={<SportManagmnet />} />
           <Route path="/sport-form" element={<SportForm />} />
           <Route path="/sport-form/:id" element={<SportForm />} />
 
-          <Route
-            path="/admin/coach-managmnet"
-            element={<CoachManagement />}
-          />
+          <Route path="/admin/coach-managmnet" element={<CoachManagement />} />
           <Route path="/coach-form" element={<CoachForm />} />
           <Route path="/coach-form/:id" element={<CoachForm />} />
 
-          <Route
-            path="/admin/coach-sport-assignment"
-            element={<CoachSportManagment />}
-          />
-          <Route
-            path="/coach-sport-assignment-form"
-            element={<CoachSportAssignmentForm />}
-          />
+          <Route path="/admin/coach-sport-assignment" element={<CoachSportManagment />} />
+          <Route path="/coach-sport-assignment-form" element={<CoachSportAssignmentForm />} />
 
-          <Route
-            path="/admin/batch-managmnet"
-            element={<BatchManagment />}
-          />
+          <Route path="/admin/batch-managmnet" element={<BatchManagment />} />
           <Route path="/batch-form" element={<BatchForm />} />
           <Route path="/batch-form/:id" element={<BatchForm />} />
 
-          <Route
-            path="/admin/fees-managment"
-            element={<FeesManagment />}
-          />
+          <Route path="/admin/fees-managment" element={<FeesManagment />} />
           <Route path="/fees-form" element={<FeesForm />} />
         </Route>
 
-
-        
-
-
-
-
-
-
         {/* OTHER STAFF DASHBOARDS */}
-        <Route
-          path="/innventory-manager"
-          element={<InnventoryManagerDashboard />}
-        />
-        <Route
-          path="/cleaningStaff"
-          element={<CleaningStaffDashboard />}
-        />
+        
+        <Route path="/cleaningStaff" element={<CleaningStaffDashboard />} />
+
+
+
+
+
+
+
+          {/* InventoryManager  */}
+
+
+        {/* Inventory Manager */}
+
+<Route element={<InventoryManagerLayout />}>
+  
+  <Route
+    path="/innventory-manager"
+    element={<InnventoryManagerDashboard />}
+  />
+
+  <Route
+    path="/inventory"
+    element={<InventoryManagement />}
+  />
+
+  <Route
+    path="/inventory/add"
+    element={<AddInventory />}
+  />
+
+  <Route
+    path="/inventory/receive-stock"
+    element={<ReceiveStock />}
+  />
+
+
+  <Route path="/innventory/history"    element={<InventoryTransactionHistory/>}  />
+
+</Route>
+
+
+
+
+
 
 
 
@@ -159,55 +168,23 @@ function App() {
 
         {/* RECEPTIONIST */}
         <Route element={<ReceptionistLayout />}>
-          <Route
-            path="/receptionist"
-            element={<ReceptionistDashboard />}
-          />
-          <Route
-            path="/receptionist/dashboard"
-            element={<ReceptionistDashboard />}
-          />
+          <Route path="/receptionist" element={<ReceptionistDashboard />} />
+          <Route path="/receptionist/dashboard" element={<ReceptionistDashboard />} />
 
-          {/* Player registration + management */}
-          <Route
-            path="/receptionist/players"
-            element={<PlayerManagement />}
-          />
-          <Route
-            path="/receptionist/player-form"
-            element={<PlayerForm />}
-          />
-          <Route
-            path="/receptionist/player-form/:id"
-            element={<PlayerForm />}
-          />
+          {/* Players */}
+          <Route path="/receptionist/players" element={<PlayerManagement />} />
+          <Route path="/receptionist/player-form" element={<PlayerForm />} />
+          <Route path="/receptionist/player-form/:id" element={<PlayerForm />} />
 
-          {/* Payment management */}
-          <Route
-            path="/receptionist/payment-management"
-            element={<PaymentManagement />}
-          />
-          <Route
-            path="/receptionist/payment-form"
-            element={<PaymentForm />}
-          />
+          {/* FIRST PAGE: player fee overview */}
+          <Route path="/receptionist/fees" element={<FeeDetails />} />
 
+          {/* PAYMENT HISTORY: separate from fee collection */}
+          <Route path="/receptionist/payment-management" element={<PaymentManagement />} />
 
-         <Route
-  path="/receptionist/fees"
-  element={<FeeDetails />}
-/>
-
-
-
-<Route
-  path="/receptionist/installment-payment"
-  element={<InstallmentPayment />}
-/>
-
-
+          {/* PAYMENT COLLECTION FORM */}
+          <Route path="/receptionist/payment-form" element={<PaymentForm />} />
         </Route>
-
       </Routes>
     </BrowserRouter>
   );

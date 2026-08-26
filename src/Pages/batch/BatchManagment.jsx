@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import {
   Search,
   Plus,
   Edit2,
   Power,
+  Eye,
+  X,
   ChevronLeft,
   ChevronRight,
-  Users,
   Filter,
   Layers,
 } from "lucide-react";
@@ -15,12 +17,15 @@ import {
 import {
   getAllBatches,
   deactivateBatch,
+  activateBatch,
 } from "./batchService";
 
 export default function BatchManagement() {
   const navigate = useNavigate();
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] =
+    useState("");
+
   const [statusFilter, setStatusFilter] =
     useState("All");
 
@@ -41,6 +46,9 @@ export default function BatchManagement() {
   const [actionLoadingId, setActionLoadingId] =
     useState(null);
 
+  const [viewBatch, setViewBatch] =
+    useState(null);
+
   // ==========================================================
   // LOAD BATCHES
   // ==========================================================
@@ -54,9 +62,13 @@ export default function BatchManagement() {
         await getAllBatches();
 
       const list =
-        Array.isArray(response?.data)
+        Array.isArray(
+          response?.data
+        )
           ? response.data
-          : Array.isArray(response)
+          : Array.isArray(
+              response
+            )
           ? response
           : [];
 
@@ -86,37 +98,60 @@ export default function BatchManagement() {
   // HELPERS
   // ==========================================================
 
-  const getStatus = (batch) => {
+  const getStatus = (
+    batch
+  ) => {
     const status =
       batch?.status ??
       batch?.Status ??
       "";
 
-    const value = String(
-      status
-    ).toUpperCase();
+    const value =
+      String(
+        status
+      ).toUpperCase();
 
-    if (value === "ACTIVE") {
+    if (
+      value ===
+      "ACTIVE"
+    ) {
       return "Active";
     }
 
-    if (value === "INACTIVE") {
+    if (
+      value ===
+      "INACTIVE"
+    ) {
       return "Inactive";
     }
 
-    return value || "Inactive";
+    return (
+      value ||
+      "Inactive"
+    );
   };
 
-  const isActive = (batch) =>
-    getStatus(batch) === "Active";
+  const isActive = (
+    batch
+  ) =>
+    getStatus(
+      batch
+    ) === "Active";
 
-  const getSportName = (batch) =>
+  const getSportName = (
+    batch
+  ) =>
     batch?.sportName ||
     batch?.sport?.sportsName ||
+    batch?.sport?.sportName ||
     "-";
 
-  const getCoachName = (batch) => {
-    if (batch?.coachName) {
+  const getCoachName = (
+    batch
+  ) => {
+    if (
+      batch?.coachName
+    ) {
       return batch.coachName;
     }
 
@@ -134,28 +169,80 @@ export default function BatchManagement() {
     );
   };
 
-  const formatTime = (time) => {
-    if (!time) return "-";
-
-    const [hour] =
-      String(time)
-        .split(":")
-        .map(Number);
-
-    const period =
-      hour >= 12 ? "PM" : "AM";
-
-    let displayHour =
-      hour % 12;
-
-    if (displayHour === 0) {
-      displayHour = 12;
+  const formatDate = (
+    date
+  ) => {
+    if (!date) {
+      return "-";
     }
 
-    return `${displayHour}:00 ${period}`;
+    const value =
+      new Date(
+        `${date}T00:00:00`
+      );
+
+    if (
+      Number.isNaN(
+        value.getTime()
+      )
+    ) {
+      return date;
+    }
+
+    return value.toLocaleDateString(
+      "en-IN",
+      {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }
+    );
   };
 
-  const formatTiming = (batch) => {
+  const formatTime = (
+    time
+  ) => {
+    if (!time) {
+      return "-";
+    }
+
+    const [
+      hourValue,
+      minuteValue,
+    ] = String(
+      time
+    )
+      .split(":")
+      .map(Number);
+
+    const period =
+      hourValue >=
+      12
+        ? "PM"
+        : "AM";
+
+    let hour =
+      hourValue %
+      12;
+
+    if (
+      hour ===
+      0
+    ) {
+      hour = 12;
+    }
+
+    return `${hour}:${String(
+      minuteValue || 0
+    ).padStart(
+      2,
+      "0"
+    )} ${period}`;
+  };
+
+  const formatTiming = (
+    batch
+  ) => {
     if (
       !batch?.startTime ||
       !batch?.endTime
@@ -170,8 +257,12 @@ export default function BatchManagement() {
     )}`;
   };
 
-  const formatDays = (days) => {
-    if (!days) return "-";
+  const formatDays = (
+    days
+  ) => {
+    if (!days) {
+      return "-";
+    }
 
     const labels = {
       MONDAY: "Mon",
@@ -183,16 +274,66 @@ export default function BatchManagement() {
       SUNDAY: "Sun",
     };
 
-    return String(days)
+    return String(
+      days
+    )
       .split(",")
-      .map((day) => {
-        const key =
-          day.trim().toUpperCase();
+      .map(
+        (day) => {
+          const key =
+            day
+              .trim()
+              .toUpperCase();
 
-        return labels[key] || day;
-      })
-      .join(", ");
+          return (
+            labels[
+              key
+            ] ||
+            day
+          );
+        }
+      )
+      .join(
+        ", "
+      );
   };
+
+  const formatMoney = (
+    amount
+  ) => {
+    if (
+      amount ===
+        null ||
+      amount ===
+        undefined ||
+      amount ===
+        ""
+    ) {
+      return "-";
+    }
+
+    return `₹${Number(
+      amount
+    ).toLocaleString(
+      "en-IN"
+    )}`;
+  };
+
+  const getCourseDuration =
+    (batch) => {
+      if (
+        batch?.courseDuration ==
+        null
+      ) {
+        return "-";
+      }
+
+      const unit =
+        batch?.courseDurationUnit ||
+        "";
+
+      return `${batch.courseDuration} ${unit.toLowerCase()}`;
+    };
 
   // ==========================================================
   // COUNTS
@@ -208,63 +349,85 @@ export default function BatchManagement() {
 
   const inactiveBatches =
     batchList.filter(
-      (batch) => !isActive(batch)
+      (batch) =>
+        !isActive(
+          batch
+        )
     ).length;
 
   // ==========================================================
-  // FILTER + SEARCH
+  // SEARCH + FILTER
   // ==========================================================
 
-  const filtered = useMemo(() => {
-    const value =
-      search.trim().toLowerCase();
+  const filtered =
+    useMemo(() => {
+      const value =
+        search
+          .trim()
+          .toLowerCase();
 
-    return batchList.filter(
-      (batch) => {
-        const name =
-          String(
-            batch?.batchName || ""
-          ).toLowerCase();
+      return batchList.filter(
+        (batch) => {
+          const name =
+            String(
+              batch?.batchName ||
+                ""
+            ).toLowerCase();
 
-        const sport =
-          String(
-            getSportName(batch)
-          ).toLowerCase();
+          const sport =
+            String(
+              getSportName(
+                batch
+              )
+            ).toLowerCase();
 
-        const coach =
-          String(
-            getCoachName(batch)
-          ).toLowerCase();
+          const coach =
+            String(
+              getCoachName(
+                batch
+              )
+            ).toLowerCase();
 
-        const matchesSearch =
-          !value ||
-          name.includes(value) ||
-          sport.includes(value) ||
-          coach.includes(value);
+          const matchesSearch =
+            !value ||
+            name.includes(
+              value
+            ) ||
+            sport.includes(
+              value
+            ) ||
+            coach.includes(
+              value
+            );
 
-        const status =
-          getStatus(batch);
+          const status =
+            getStatus(
+              batch
+            );
 
-        const matchesStatus =
-          statusFilter === "All" ||
-          (statusFilter ===
-            "Active" &&
-            status === "Active") ||
-          (statusFilter ===
-            "Inactive" &&
-            status === "Inactive");
+          const matchesStatus =
+            statusFilter ===
+              "All" ||
+            (statusFilter ===
+              "Active" &&
+              status ===
+                "Active") ||
+            (statusFilter ===
+              "Inactive" &&
+              status ===
+                "Inactive");
 
-        return (
-          matchesSearch &&
-          matchesStatus
-        );
-      }
-    );
-  }, [
-    batchList,
-    search,
-    statusFilter,
-  ]);
+          return (
+            matchesSearch &&
+            matchesStatus
+          );
+        }
+      );
+    }, [
+      batchList,
+      search,
+      statusFilter,
+    ]);
 
   // ==========================================================
   // PAGINATION
@@ -277,13 +440,15 @@ export default function BatchManagement() {
     ) || 1;
 
   const startIndex =
-    (currentPage - 1) *
+    (currentPage -
+      1) *
     itemsPerPage;
 
   const paginated =
     filtered.slice(
       startIndex,
-      startIndex + itemsPerPage
+      startIndex +
+        itemsPerPage
     );
 
   useEffect(() => {
@@ -294,48 +459,67 @@ export default function BatchManagement() {
   ]);
 
   // ==========================================================
-  // DEACTIVATE
+  // STATUS CHANGE
   // ==========================================================
 
-  const handleDeactivate = async (
-    batch
-  ) => {
-    if (!batch?.id) return;
+  const handleStatusChange =
+    async (
+      batch
+    ) => {
+      if (!batch?.id) {
+        return;
+      }
 
-    const confirmed =
-      window.confirm(
-        `Deactivate "${batch.batchName}"?`
-      );
+      const active =
+        isActive(
+          batch
+        );
 
-    if (!confirmed) {
-      return;
-    }
+      const confirmed =
+        window.confirm(
+          active
+            ? `Deactivate "${batch.batchName}"?`
+            : `Activate "${batch.batchName}"?`
+        );
 
-    try {
-      setActionLoadingId(
-        batch.id
-      );
-      setError("");
+      if (!confirmed) {
+        return;
+      }
 
-      await deactivateBatch(
-        batch.id
-      );
+      try {
+        setActionLoadingId(
+          batch.id
+        );
 
-      await loadBatches();
-    } catch (err) {
-      console.error(
-        "Failed to deactivate batch:",
-        err
-      );
+        setError("");
 
-      setError(
-        err.message ||
-          "Failed to deactivate batch."
-      );
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
+        if (active) {
+          await deactivateBatch(
+            batch.id
+          );
+        } else {
+          await activateBatch(
+            batch.id
+          );
+        }
+
+        await loadBatches();
+      } catch (err) {
+        console.error(
+          "Failed to change batch status:",
+          err
+        );
+
+        setError(
+          err.message ||
+            "Failed to change batch status."
+        );
+      } finally {
+        setActionLoadingId(
+          null
+        );
+      }
+    };
 
   // ==========================================================
   // UI
@@ -346,6 +530,7 @@ export default function BatchManagement() {
 
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-slate-800">
             Batch Management
@@ -362,63 +547,47 @@ export default function BatchManagement() {
               "/batch-form"
             )
           }
-          className="inline-flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition shadow-md hover:shadow-lg"
+          className="inline-flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition shadow-md"
         >
           <Plus className="w-4 h-4" />
           Add New Batch
         </button>
+
       </div>
 
       {/* STATS */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
 
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-sky-100 flex items-center justify-center">
-            <Layers className="w-6 h-6 text-sky-600" />
-          </div>
+        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+          <p className="text-sm text-slate-500">
+            Total Batches
+          </p>
 
-          <div>
-            <p className="text-sm text-slate-500">
-              Total Batches
-            </p>
-
-            <p className="text-2xl font-bold text-slate-800">
-              {totalBatches}
-            </p>
-          </div>
+          <p className="text-2xl font-bold text-slate-800 mt-1">
+            {totalBatches}
+          </p>
         </div>
 
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center">
-            <Users className="w-6 h-6 text-emerald-600" />
-          </div>
+        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+          <p className="text-sm text-slate-500">
+            Active Batches
+          </p>
 
-          <div>
-            <p className="text-sm text-slate-500">
-              Active Batches
-            </p>
-
-            <p className="text-2xl font-bold text-slate-800">
-              {activeBatches}
-            </p>
-          </div>
+          <p className="text-2xl font-bold text-emerald-600 mt-1">
+            {activeBatches}
+          </p>
         </div>
 
-        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-rose-100 flex items-center justify-center">
-            <Users className="w-6 h-6 text-rose-600" />
-          </div>
+        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+          <p className="text-sm text-slate-500">
+            Inactive Batches
+          </p>
 
-          <div>
-            <p className="text-sm text-slate-500">
-              Inactive Batches
-            </p>
-
-            <p className="text-2xl font-bold text-slate-800">
-              {inactiveBatches}
-            </p>
-          </div>
+          <p className="text-2xl font-bold text-rose-600 mt-1">
+            {inactiveBatches}
+          </p>
         </div>
+
       </div>
 
       {/* ERROR */}
@@ -428,46 +597,63 @@ export default function BatchManagement() {
         </div>
       )}
 
-      {/* TABLE CARD */}
+      {/* TABLE */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
 
         {/* TOOLBAR */}
         <div className="p-5 border-b border-slate-100 flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
 
           <div className="relative w-full lg:w-96">
+
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
 
             <input
               type="text"
               placeholder="Search by batch, sport or coach..."
-              value={search}
-              onChange={(event) => {
+              value={
+                search
+              }
+              onChange={(
+                event
+              ) => {
                 setSearch(
-                  event.target.value
+                  event.target
+                    .value
                 );
-                setCurrentPage(1);
+
+                setCurrentPage(
+                  1
+                );
               }}
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40 focus:border-sky-500 transition"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500/40"
             />
+
           </div>
 
           <div className="flex items-center gap-3">
+
             <div className="flex items-center gap-2 text-sm text-slate-500">
               <Filter className="w-4 h-4" />
-              <span>
-                Filter by Status
-              </span>
+              Filter by Status
             </div>
 
             <select
-              value={statusFilter}
-              onChange={(event) => {
+              value={
+                statusFilter
+              }
+              onChange={(
+                event
+              ) => {
                 setStatusFilter(
-                  event.target.value
+                  event.target
+                    .value
                 );
-                setCurrentPage(1);
+
+                setCurrentPage(
+                  1
+                );
               }}
-              className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-sky-500/40"
+              className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2.5"
             >
               <option value="All">
                 All Batches
@@ -481,41 +667,48 @@ export default function BatchManagement() {
                 Inactive Only
               </option>
             </select>
+
           </div>
+
         </div>
 
         {/* TABLE */}
         <div className="overflow-x-auto">
+
           <table className="w-full">
 
             <thead>
               <tr className="bg-slate-50 text-left">
 
-                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">
                   Batch
                 </th>
 
-                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">
                   Sport / Coach
                 </th>
 
-                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">
+                  Dates
+                </th>
+
+                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">
                   Timing
                 </th>
 
-                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Days
+                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">
+                  Course / Fee
                 </th>
 
-                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">
                   Capacity
                 </th>
 
-                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase">
                   Status
                 </th>
 
-                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">
+                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase text-center">
                   Actions
                 </th>
 
@@ -527,7 +720,7 @@ export default function BatchManagement() {
               {loading ? (
                 <tr>
                   <td
-                    colSpan="7"
+                    colSpan="8"
                     className="px-6 py-16 text-center text-slate-500"
                   >
                     Loading batches...
@@ -536,160 +729,218 @@ export default function BatchManagement() {
               ) : paginated.length >
                 0 ? (
                 paginated.map(
-                  (batch) => {
-                    const status =
-                      getStatus(
-                        batch
-                      );
+                  (
+                    batch
+                  ) => (
+                    <tr
+                      key={
+                        batch.id
+                      }
+                      className="hover:bg-slate-50/70 transition"
+                    >
 
-                    return (
-                      <tr
-                        key={
-                          batch.id
-                        }
-                        className="hover:bg-slate-50/70 transition"
-                      >
+                      {/* BATCH */}
+                      <td className="px-6 py-4">
+                        <p className="font-semibold text-slate-800">
+                          {batch.batchName ||
+                            "-"}
+                        </p>
+                      </td>
 
-                        {/* BATCH */}
-                        <td className="px-6 py-4">
-                          <p className="font-semibold text-slate-800">
-                            {batch.batchName ||
-                              "-"}
-                          </p>
-                        </td>
+                      {/* SPORT / COACH */}
+                      <td className="px-6 py-4">
 
-                        {/* SPORT / COACH */}
-                        <td className="px-6 py-4">
-                          <p className="text-sm font-medium text-slate-700">
-                            {getSportName(
-                              batch
-                            )}
-                          </p>
+                        <p className="text-sm font-medium text-slate-700">
+                          {getSportName(
+                            batch
+                          )}
+                        </p>
 
-                          <p className="text-xs text-slate-400 mt-0.5">
-                            {getCoachName(
-                              batch
-                            )}
-                          </p>
-                        </td>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {getCoachName(
+                            batch
+                          )}
+                        </p>
 
-                        {/* TIME */}
-                        <td className="px-6 py-4 text-sm text-slate-600">
+                      </td>
+
+                      {/* DATES */}
+                      <td className="px-6 py-4">
+
+                        <p className="text-sm text-slate-700">
+                          {formatDate(
+                            batch.startDate
+                          )}
+                        </p>
+
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          to{" "}
+                          {formatDate(
+                            batch.endDate
+                          )}
+                        </p>
+
+                      </td>
+
+                      {/* TIMING */}
+                      <td className="px-6 py-4">
+
+                        <p className="text-sm text-slate-700">
                           {formatTiming(
                             batch
                           )}
-                        </td>
+                        </p>
 
-                        {/* DAYS */}
-                        <td className="px-6 py-4 text-sm text-slate-600">
+                        <p className="text-xs text-slate-400 mt-1">
                           {formatDays(
                             batch.trainingDays
                           )}
-                        </td>
+                        </p>
 
-                        {/* CAPACITY */}
-                        <td className="px-6 py-4">
-                          <p className="text-sm text-slate-700">
-                            {batch.currentPlayers ??
-                              0}{" "}
-                            /{" "}
-                            {batch.capacity ??
-                              "-"}
-                          </p>
+                      </td>
 
-                          <p className="text-xs text-slate-400 mt-0.5">
-                            {batch.availableSeats ??
-                              Math.max(
-                                0,
-                                Number(
-                                  batch.capacity ||
-                                    0
-                                ) -
-                                  Number(
-                                    batch.currentPlayers ||
-                                      0
-                                  )
-                              )}{" "}
-                            seats available
-                          </p>
-                        </td>
+                      {/* COURSE / FEE */}
+                      <td className="px-6 py-4">
 
-                        {/* STATUS */}
-                        <td className="px-6 py-4">
+                        <p className="text-sm text-slate-700">
+                          {getCourseDuration(
+                            batch
+                          )}
+                        </p>
+
+                        <p className="text-xs text-slate-500 mt-1">
+                          Fee:{" "}
+                          {formatMoney(
+                            batch.fee
+                          )}
+                        </p>
+
+                        <p className="text-xs text-emerald-600 mt-0.5">
+                          Discount:{" "}
+                          {formatMoney(
+                            batch.discount ??
+                              0
+                          )}
+                        </p>
+
+                      </td>
+
+                      {/* CAPACITY */}
+                      <td className="px-6 py-4">
+
+                        <p className="text-sm font-medium text-slate-700">
+                          {batch.capacity ??
+                            "-"}{" "}
+                          players
+                        </p>
+
+                      </td>
+
+                      {/* STATUS */}
+                      <td className="px-6 py-4">
+
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                            isActive(
+                              batch
+                            )
+                              ? "bg-emerald-50 text-emerald-700"
+                              : "bg-rose-50 text-rose-700"
+                          }`}
+                        >
+
                           <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                            className={`w-1.5 h-1.5 rounded-full ${
                               isActive(
                                 batch
                               )
-                                ? "bg-emerald-50 text-emerald-700"
-                                : "bg-rose-50 text-rose-700"
+                                ? "bg-emerald-500"
+                                : "bg-rose-500"
                             }`}
+                          />
+
+                          {getStatus(
+                            batch
+                          )}
+
+                        </span>
+
+                      </td>
+
+                      {/* ACTIONS */}
+                      <td className="px-6 py-4">
+
+                        <div className="flex items-center justify-center gap-1">
+
+                          {/* VIEW */}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setViewBatch(
+                                batch
+                              )
+                            }
+                            className="p-2 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition"
+                            title="View Batch"
                           >
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                isActive(
-                                  batch
-                                )
-                                  ? "bg-emerald-500"
-                                  : "bg-rose-500"
-                              }`}
-                            />
+                            <Eye className="w-4 h-4" />
+                          </button>
 
-                            {status}
-                          </span>
-                        </td>
+                          {/* EDIT */}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              navigate(
+                                `/batch-form/${batch.id}`
+                              )
+                            }
+                            className="p-2 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition"
+                            title="Edit Batch"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
 
-                        {/* ACTIONS */}
-                        <td className="px-6 py-4">
-                          <div className="flex items-center justify-center gap-1">
+                          {/* STATUS */}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleStatusChange(
+                                batch
+                              )
+                            }
+                            disabled={
+                              actionLoadingId ===
+                              batch.id
+                            }
+                            className={`p-2 rounded-lg transition disabled:opacity-40 ${
+                              isActive(
+                                batch
+                              )
+                                ? "text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                                : "text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
+                            }`}
+                            title={
+                              isActive(
+                                batch
+                              )
+                                ? "Deactivate Batch"
+                                : "Activate Batch"
+                            }
+                          >
+                            <Power className="w-4 h-4" />
+                          </button>
 
-                            <button
-                              onClick={() =>
-                                navigate(
-                                  `/batch-form/${batch.id}`
-                                )
-                              }
-                              disabled={
-                                !isActive(
-                                  batch
-                                )
-                              }
-                              className="p-2 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition disabled:opacity-30 disabled:cursor-not-allowed"
-                              title="Edit Batch"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
+                        </div>
 
-                            {isActive(
-                              batch
-                            ) && (
-                              <button
-                                onClick={() =>
-                                  handleDeactivate(
-                                    batch
-                                  )
-                                }
-                                disabled={
-                                  actionLoadingId ===
-                                  batch.id
-                                }
-                                className="p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition disabled:opacity-40"
-                                title="Deactivate Batch"
-                              >
-                                <Power className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
+                      </td>
 
-                      </tr>
-                    );
-                  }
+                    </tr>
+                  )
                 )
               ) : (
                 <tr>
                   <td
-                    colSpan="7"
+                    colSpan="8"
                     className="px-6 py-16 text-center"
                   >
                     <Layers className="w-12 h-12 mx-auto mb-3 text-slate-300" />
@@ -706,33 +957,44 @@ export default function BatchManagement() {
               )}
 
             </tbody>
+
           </table>
+
         </div>
 
         {/* PAGINATION */}
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-4">
 
           <p className="text-sm text-slate-500">
+
             Showing{" "}
+
             <span className="font-semibold text-slate-800">
               {filtered.length ===
               0
                 ? 0
-                : startIndex + 1}
-            </span>{" "}
-            to{" "}
+                : startIndex +
+                  1}
+            </span>
+
+            {" "}to{" "}
+
             <span className="font-semibold text-slate-800">
               {Math.min(
                 startIndex +
                   itemsPerPage,
                 filtered.length
               )}
-            </span>{" "}
-            of{" "}
+            </span>
+
+            {" "}of{" "}
+
             <span className="font-semibold text-slate-800">
               {filtered.length}
-            </span>{" "}
-            batches
+            </span>
+
+            {" "}batches
+
           </p>
 
           <div className="flex items-center gap-1.5">
@@ -740,17 +1002,21 @@ export default function BatchManagement() {
             <button
               onClick={() =>
                 setCurrentPage(
-                  (page) =>
+                  (
+                    page
+                  ) =>
                     Math.max(
-                      page - 1,
+                      page -
+                        1,
                       1
                     )
                 )
               }
               disabled={
-                currentPage === 1
+                currentPage ===
+                1
               }
-              className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -760,32 +1026,46 @@ export default function BatchManagement() {
                 length:
                   totalPages,
               },
-              (_, index) =>
-                index + 1
-            ).map((page) => (
-              <button
-                key={page}
-                onClick={() =>
-                  setCurrentPage(
+              (
+                _,
+                index
+              ) =>
+                index +
+                1
+            ).map(
+              (
+                page
+              ) => (
+                <button
+                  key={
                     page
-                  )
-                }
-                className={`min-w-[36px] h-9 rounded-lg text-sm font-medium transition ${
-                  currentPage === page
-                    ? "bg-sky-600 text-white shadow-sm"
-                    : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                {page}
-              </button>
-            ))}
+                  }
+                  onClick={() =>
+                    setCurrentPage(
+                      page
+                    )
+                  }
+                  className={`min-w-[36px] h-9 rounded-lg text-sm font-medium ${
+                    currentPage ===
+                    page
+                      ? "bg-sky-600 text-white"
+                      : "bg-white border border-slate-200 text-slate-600"
+                  }`}
+                >
+                  {page}
+                </button>
+              )
+            )}
 
             <button
               onClick={() =>
                 setCurrentPage(
-                  (page) =>
+                  (
+                    page
+                  ) =>
                     Math.min(
-                      page + 1,
+                      page +
+                        1,
                       totalPages
                     )
                 )
@@ -793,16 +1073,272 @@ export default function BatchManagement() {
               disabled={
                 currentPage ===
                   totalPages ||
-                totalPages === 0
+                totalPages ===
+                  0
               }
-              className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              className="p-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
 
           </div>
+
         </div>
+
       </div>
+
+      {/* ======================================================
+          VIEW BATCH MODAL
+          ====================================================== */}
+
+      {viewBatch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+
+          <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden">
+
+            {/* HEADER */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">
+                  Batch Details
+                </h2>
+
+                <p className="text-sm text-slate-500 mt-1">
+                  Complete batch information
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setViewBatch(
+                    null
+                  )
+                }
+                className="p-2 rounded-lg hover:bg-slate-100"
+              >
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+
+            </div>
+
+            {/* CONTENT */}
+            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+              <div className="sm:col-span-2">
+                <p className="text-xs text-slate-400">
+                  Batch
+                </p>
+
+                <p className="mt-1 font-semibold text-slate-900">
+                  {viewBatch.batchName ||
+                    "-"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-400">
+                  Sport
+                </p>
+
+                <p className="mt-1 font-medium text-slate-800">
+                  {getSportName(
+                    viewBatch
+                  )}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-400">
+                  Coach
+                </p>
+
+                <p className="mt-1 font-medium text-slate-800">
+                  {getCoachName(
+                    viewBatch
+                  )}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-400">
+                  Start Date
+                </p>
+
+                <p className="mt-1 font-medium text-slate-800">
+                  {formatDate(
+                    viewBatch.startDate
+                  )}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-400">
+                  End Date
+                </p>
+
+                <p className="mt-1 font-medium text-slate-800">
+                  {formatDate(
+                    viewBatch.endDate
+                  )}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-400">
+                  Timing
+                </p>
+
+                <p className="mt-1 font-medium text-slate-800">
+                  {formatTiming(
+                    viewBatch
+                  )}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-400">
+                  Training Days
+                </p>
+
+                <p className="mt-1 font-medium text-slate-800">
+                  {formatDays(
+                    viewBatch.trainingDays
+                  )}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-400">
+                  Course Duration
+                </p>
+
+                <p className="mt-1 font-medium text-slate-800">
+                  {getCourseDuration(
+                    viewBatch
+                  )}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-400">
+                  Capacity
+                </p>
+
+                <p className="mt-1 font-medium text-slate-800">
+                  {viewBatch.capacity ??
+                    "-"}{" "}
+                  players
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-400">
+                  Fee
+                </p>
+
+                <p className="mt-1 font-medium text-slate-800">
+                  {formatMoney(
+                    viewBatch.fee
+                  )}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-400">
+                  Discount
+                </p>
+
+                <p className="mt-1 font-medium text-slate-800">
+                  {formatMoney(
+                    viewBatch.discount ??
+                      0
+                  )}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-slate-400">
+                  Final Fee
+                </p>
+
+                <p className="mt-1 font-semibold text-emerald-600">
+                  {formatMoney(
+                    Math.max(
+                      0,
+                      Number(
+                        viewBatch.fee ||
+                          0
+                      ) -
+                        Number(
+                          viewBatch.discount ||
+                            0
+                        )
+                    )
+                  )}
+                </p>
+              </div>
+
+              {/* STATUS */}
+              <div className="sm:col-span-2">
+
+                <p className="text-xs text-slate-400">
+                  Status
+                </p>
+
+                <span
+                  className={`inline-flex mt-2 items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
+                    isActive(
+                      viewBatch
+                    )
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-rose-50 text-rose-700"
+                  }`}
+                >
+
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      isActive(
+                        viewBatch
+                      )
+                        ? "bg-emerald-500"
+                        : "bg-rose-500"
+                    }`}
+                  />
+
+                  {getStatus(
+                    viewBatch
+                  )}
+
+                </span>
+
+              </div>
+
+            </div>
+
+            {/* FOOTER */}
+            <div className="px-6 py-4 border-t border-slate-100 flex justify-end">
+
+              <button
+                type="button"
+                onClick={() =>
+                  setViewBatch(
+                    null
+                  )
+                }
+                className="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-semibold hover:bg-slate-200"
+              >
+                Close
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
     </div>
   );
 }

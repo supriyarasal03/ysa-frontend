@@ -7,12 +7,17 @@ import {
   UserPlus,
   AlertCircle,
   RefreshCw,
+  Eye,
+  Pencil,
+  Trash2,
+  X,
 } from "lucide-react";
-
 import {
   getAllCoaches,
   getAllSports,
   getCoachSportAssignments,
+  updateCoachSportAssignment,
+  removeCoachSportAssignment,
 } from "../coach/CoachService";
 
 import CoachSportAssignmentForm from "./CoachSportAssignmentForm";
@@ -25,8 +30,31 @@ const CoachSportManagment = () => {
   const [search, setSearch] = useState("");
   const [selectedSport, setSelectedSport] = useState("ALL");
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState("");
+
+const [selectedAssignment, setSelectedAssignment] =
+  useState(null);
+
+const [viewAssignment, setViewAssignment] =
+  useState(null);
+
+const [showUpdateModal, setShowUpdateModal] =
+  useState(false);
+
+const [showDeleteModal, setShowDeleteModal] =
+  useState(false);
+
+const [updateSportId, setUpdateSportId] =
+  useState("");
+
+const [actionLoading, setActionLoading] =
+  useState(false);
+
+
+
+
 
   const loadData = async () => {
     try {
@@ -55,11 +83,19 @@ const CoachSportManagment = () => {
         ? coachResponse
         : [];
 
-      const assignmentList = Array.isArray(assignmentResponse?.data)
-        ? assignmentResponse.data
-        : Array.isArray(assignmentResponse)
-        ? assignmentResponse
-        : [];
+const assignmentList = (
+  Array.isArray(assignmentResponse?.data)
+    ? assignmentResponse.data
+    : Array.isArray(assignmentResponse)
+    ? assignmentResponse
+    : []
+).sort(
+  (a, b) =>
+    Number(b.coachId || 0) -
+    Number(a.coachId || 0)
+);
+
+
 
       setSports(sportList);
       setCoaches(coachList);
@@ -77,6 +113,70 @@ const CoachSportManagment = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+
+
+  const handleUpdateAssignment = async () => {
+  if (!selectedAssignment || !updateSportId) {
+    return;
+  }
+
+  try {
+    setActionLoading(true);
+    setError("");
+
+    await updateCoachSportAssignment(
+      Number(updateSportId),
+      Number(selectedAssignment.coachId)
+    );
+
+    setShowUpdateModal(false);
+    setSelectedAssignment(null);
+    setUpdateSportId("");
+
+    await loadData();
+  } catch (err) {
+    setError(
+      err.message ||
+        "Failed to update coach sport assignment."
+    );
+  } finally {
+    setActionLoading(false);
+  }
+};
+
+
+const handleRemoveAssignment = async () => {
+  if (!selectedAssignment) {
+    return;
+  }
+
+  try {
+    setActionLoading(true);
+    setError("");
+
+    await removeCoachSportAssignment(
+      Number(selectedAssignment.coachId)
+    );
+
+    setShowDeleteModal(false);
+    setSelectedAssignment(null);
+
+    await loadData();
+  } catch (err) {
+    setError(
+      err.message ||
+        "Failed to remove coach from sport."
+    );
+  } finally {
+    setActionLoading(false);
+  }
+};
+
+
+
+
+
 
   const totalSports = sports.length;
 
@@ -121,15 +221,8 @@ const CoachSportManagment = () => {
     });
   }, [assignments, search, selectedSport]);
 
-  const getStatusClasses = (status) => {
-    const value = String(status || "").toUpperCase();
 
-    if (value === "ACTIVE") {
-      return "bg-emerald-50 text-emerald-700";
-    }
 
-    return "bg-red-50 text-red-600";
-  };
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-8">
@@ -336,13 +429,15 @@ const CoachSportManagment = () => {
                       Qualification
                     </th>
 
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                      Coach Status
-                    </th>
+                   
+
 
                     <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                      Sport Status
-                    </th>
+  Actions
+</th>
+
+
+
                   </tr>
                 </thead>
 
@@ -390,39 +485,336 @@ const CoachSportManagment = () => {
                         {assignment.qualification || "-"}
                       </td>
 
-                      {/* COACH STATUS */}
-                      <td className="px-6 py-5">
-                        <span
-                          className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${getStatusClasses(
-                            assignment.coachStatus
-                          )}`}
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                          {assignment.coachStatus || "UNKNOWN"}
-                        </span>
-                      </td>
 
-                      {/* SPORT STATUS */}
-                      <td className="px-6 py-5">
-                        <span
-                          className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ${getStatusClasses(
-                            assignment.sportStatus
-                          )}`}
-                        >
-                          <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                          {assignment.sportStatus || "UNKNOWN"}
-                        </span>
-                      </td>
+                     
+
+
+
+
+
+                      {/* ACTIONS */}
+<td className="px-6 py-5">
+  <div className="flex items-center gap-2">
+
+    {/* VIEW */}
+    <button
+      type="button"
+      title="View"
+      onClick={() =>
+        setViewAssignment(assignment)
+      }
+      className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50"
+    >
+      <Eye className="w-4 h-4" />
+    </button>
+
+
+    {/* UPDATE */}
+    <button
+      type="button"
+      title="Update"
+      onClick={() => {
+        setSelectedAssignment(assignment);
+        setUpdateSportId(
+          String(assignment.sportId)
+        );
+        setShowUpdateModal(true);
+      }}
+      className="p-2 rounded-lg border border-slate-200 text-sky-600 hover:bg-sky-50"
+    >
+      <Pencil className="w-4 h-4" />
+    </button>
+
+
+    {/* ACTIVE / INACTIVE */}
+
+    
+
+
+
+    {/* REMOVE */}
+    <button
+      type="button"
+      title="Remove Assignment"
+      onClick={() => {
+        setSelectedAssignment(assignment);
+        setShowDeleteModal(true);
+      }}
+      className="p-2 rounded-lg border border-slate-200 text-red-600 hover:bg-red-50"
+    >
+      <Trash2 className="w-4 h-4" />
+    </button>
+
+  </div>
+</td>
+
+
+
 
                     </tr>
-                  ))}
+                  )
+                  
+                  
+                  
+                  
+                  
+                  )}
 
                 </tbody>
               </table>
             </div>
+
+
+
+
           )}
 
         </div>
+
+        {/* VIEW MODAL */}
+        {viewAssignment && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+
+            <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl">
+
+              <div className="flex items-center justify-between border-b px-6 py-5">
+
+                <h2 className="text-xl font-semibold text-slate-900">
+                  Assignment Details
+                </h2>
+
+                <button
+                  type="button"
+                  onClick={() => setViewAssignment(null)}
+                  className="rounded-lg p-2 hover:bg-slate-100"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+              </div>
+
+              <div className="p-6 space-y-4">
+
+                <div>
+                  <p className="text-sm text-slate-500">
+                    Sport
+                  </p>
+                  <p className="font-semibold text-slate-900">
+                    {viewAssignment.sportName}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-sm text-slate-500">
+                    Coach
+                  </p>
+                  <p className="font-semibold text-slate-900">
+                    {viewAssignment.fullName}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-sm text-slate-500">
+                    Contact
+                  </p>
+                  <p className="text-slate-900">
+                    {viewAssignment.mobileNumber || "-"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-sm text-slate-500">
+                    Experience
+                  </p>
+                  <p className="text-slate-900">
+                    {viewAssignment.experience != null
+                      ? `${viewAssignment.experience} yrs`
+                      : "-"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-sm text-slate-500">
+                    Qualification
+                  </p>
+                  <p className="text-slate-900">
+                    {viewAssignment.qualification || "-"}
+                  </p>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+
+
+        )}
+
+
+        {/* UPDATE MODAL */}
+{showUpdateModal &&
+  selectedAssignment && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+
+      <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl">
+
+        <div className="flex items-center justify-between border-b px-6 py-5">
+
+          <h2 className="text-xl font-semibold text-slate-900">
+            Update Sport Assignment
+          </h2>
+
+          <button
+            type="button"
+            onClick={() => {
+              setShowUpdateModal(false);
+              setSelectedAssignment(null);
+            }}
+            className="rounded-lg p-2 hover:bg-slate-100"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
+        </div>
+
+        <div className="p-6">
+
+          <div className="mb-5">
+            <p className="text-sm text-slate-500">
+              Coach
+            </p>
+
+            <p className="font-semibold text-slate-900">
+              {selectedAssignment.fullName}
+            </p>
+          </div>
+
+          <label className="block text-sm font-medium text-slate-700 mb-2">
+            Select Sport
+          </label>
+
+          <select
+            value={updateSportId}
+            onChange={(e) =>
+              setUpdateSportId(e.target.value)
+            }
+            className="w-full rounded-xl border border-slate-300 px-4 py-3"
+          >
+            {sports
+              .filter(
+                (sport) =>
+                  String(
+                    sport?.Status ??
+                      sport?.status ??
+                      ""
+                  ).toUpperCase() === "ACTIVE"
+              )
+              .map((sport) => (
+                <option
+                  key={sport.id}
+                  value={sport.id}
+                >
+                  {sport.sportsName}
+                </option>
+              ))}
+          </select>
+
+          <div className="flex justify-end gap-3 mt-6">
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowUpdateModal(false);
+                setSelectedAssignment(null);
+              }}
+              className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-medium"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              onClick={handleUpdateAssignment}
+              disabled={
+                actionLoading ||
+                !updateSportId
+              }
+              className="rounded-xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {actionLoading
+                ? "Updating..."
+                : "Update"}
+            </button>
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+  )}
+
+
+
+  {/* REMOVE MODAL */}
+{showDeleteModal &&
+  selectedAssignment && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+
+      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+
+        <div className="p-6">
+
+          <h2 className="text-xl font-semibold text-slate-900">
+            Remove Assignment
+          </h2>
+
+          <p className="mt-3 text-sm text-slate-600">
+            Are you sure you want to remove{" "}
+            <strong>
+              {selectedAssignment.fullName}
+            </strong>{" "}
+            from{" "}
+            <strong>
+              {selectedAssignment.sportName}
+            </strong>
+            ?
+          </p>
+
+          <div className="flex justify-end gap-3 mt-6">
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowDeleteModal(false);
+                setSelectedAssignment(null);
+              }}
+              className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-medium"
+            >
+              No
+            </button>
+
+            <button
+              type="button"
+              onClick={handleRemoveAssignment}
+              disabled={actionLoading}
+              className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
+            >
+              {actionLoading
+                ? "Removing..."
+                : "Yes, Remove"}
+            </button>
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+  )}
+
+
+
+
+
       </div>
     </div>
   );

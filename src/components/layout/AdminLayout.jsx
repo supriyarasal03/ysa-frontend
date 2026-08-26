@@ -95,19 +95,7 @@ export default function AdminLayout() {
 
 
 
-           <NavLink
-            to="/admin/coach-sport-assignment"
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg font-bold no-underline transition ${
-                isActive
-                  ? "bg-sky-600/20 text-sky-400"
-                  : "text-slate-300 hover:bg-slate-800"
-              }`
-            }
-          >
-            <Trophy className="w-4.5 h-4.5" />
-          Coach Sport Assignment
-          </NavLink>
+         
 
 
 
@@ -144,20 +132,7 @@ export default function AdminLayout() {
 
 
           
-          <NavLink
-            to="/admin/fees-managment"
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg font-bold no-underline transition ${
-                isActive
-                  ? "bg-sky-600/20 text-sky-400"
-                  : "text-slate-300 hover:bg-slate-800"
-              }`
-            }
-          >
-            <IndianRupee className="w-4.5 h-4.5" />
-Fees Managment
-
-          </NavLink>
+          
 
 
 

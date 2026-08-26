@@ -275,26 +275,26 @@ const StaffForm = () => {
 
   const validate = () => {
     const next = {};
+const fields = [
+  "username",
+  "email",
+  ...(!isEdit ? ["password", "confirmPassword"] : []),
+  "role",
+  "firstName",
 
-    const fields = [
-      "username",
-      "email",
-      "password",
-      "confirmPassword",
-      "role",
-      "firstName",
-      "lastName",
-      "mobileNumber",
-      "dateOfBirth",
-      "gender",
-      "address",
-      "joiningDate",
-      "highestQualification",
-      "experienceYears",
-      "accountNumber",
-      "ifscCode",
-    ];
 
+
+  "lastName",
+  "mobileNumber",
+  "dateOfBirth",
+  "gender",
+  "address",
+  ...(!isEdit ? ["joiningDate"] : []),
+  "highestQualification",
+  "experienceYears",
+  "accountNumber",
+  "ifscCode",
+];
     fields.forEach((field) => {
       const message = validateField(field);
       if (message) next[field] = message;
@@ -688,22 +688,39 @@ const StaffForm = () => {
 
       fd.append("username", formData.username.trim());
       fd.append("email", formData.email.trim());
-      if (formData.password) fd.append("password", formData.password);
-      if (formData.confirmPassword) {
-        fd.append("confirmPassword", formData.confirmPassword);
-      }
+
+if (!isEdit && formData.password) {
+  fd.append("password", formData.password);
+}
+
+if (!isEdit && formData.confirmPassword) {
+  fd.append("confirmPassword", formData.confirmPassword);
+}
+
+
+
+
       fd.append("role", formData.role);
       fd.append("firstName", formData.firstName.trim());
       fd.append("lastName", formData.lastName.trim());
       fd.append("mobileNumber", formData.mobileNumber);
       fd.append("dateOfBirth", formData.dateOfBirth);
       fd.append("gender", formData.gender);
-      fd.append("address", formData.address.trim());
-      fd.append("joiningDate", formData.joiningDate);
-      fd.append(
-        "highestQualification",
-        formData.highestQualification.trim()
-      );
+
+fd.append("address", formData.address.trim());
+
+if (!isEdit) {
+  fd.append("joiningDate", formData.joiningDate);
+}
+
+fd.append(
+  "highestQualification",
+  formData.highestQualification.trim()
+);
+
+
+
+
       fd.append("experienceYears", formData.experienceYears);
       fd.append("accountNumber", formData.accountNumber);
       fd.append("ifscCode", formData.ifscCode.toUpperCase());
@@ -729,66 +746,50 @@ const StaffForm = () => {
         fd.append("resume", formData.resume);
       }
 
-      const response = isEdit
-        ? await updateStaff(id, fd)
-        : await addstaff(fd);
 
-      if (response?.success === false) {
-        applyBackendErrors({ response: { data: response } });
-        return;
-      }
 
-      setSuccessMessage(
-        response?.message ||
-          (isEdit
-            ? "Staff updated successfully."
-            : "Staff registered successfully.")
-      );
+const response = isEdit
+  ? await updateStaff(id, fd)
+  : await addstaff(fd);
 
-      if (!isEdit) {
-        setFormData({
-          username: "",
-          email: "",
-          password: "",
-          confirmPassword: "",
-          role: "",
-          firstName: "",
-          lastName: "",
-          mobileNumber: "",
-          dateOfBirth: "",
-          gender: "",
-          address: "",
-          joiningDate: "",
-          highestQualification: "",
-          experienceYears: "",
-          accountNumber: "",
-          ifscCode: "",
-          aadhaarFront: null,
-          aadhaarBack: null,
-          panCard: null,
-          degreeCertificate: null,
-          resume: null,
-        });
+if (response?.success === false) {
+  applyBackendErrors({ response: { data: response } });
+  return;
+}
 
-        setPhotoFile(null);
-        setPhotoPreview(null);
-        setPhotoCaptureType("");
+setSuccessMessage(
+  response?.message ||
+    (isEdit
+      ? "Staff updated successfully."
+      : "Staff registered successfully.")
+);
 
-        setDocPreviews({
-          aadhaarFront: null,
-          aadhaarBack: null,
-          panCard: null,
-          degreeCertificate: null,
-          resume: null,
-        });
-      }
-    } catch (error) {
-      console.error("Staff save error:", error);
-      applyBackendErrors(error);
-    } finally {
-      setLoading(false);
-    }
+// Redirect to Staff Management after 3 seconds
+setTimeout(() => {
+  navigate("/admin/staff-management");
+}, 1000);
+
+} catch (error) {
+  console.error("Staff save error:", error);
+  applyBackendErrors(error);
+} finally {
+  setLoading(false);
+}
+
+
+
+
+    
   };
+
+
+  
+
+
+
+
+
+  
 
   useEffect(() => {
     return () => {
@@ -1182,21 +1183,27 @@ const StaffForm = () => {
                   <ErrorText name="experienceYears" />
                 </div>
 
-                <div className="xl:col-span-2">
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
-                    Joining Date <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    name="joiningDate"
-                    value={formData.joiningDate}
-                    min={today}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    className={fieldClass("joiningDate", "bg-white")}
-                  />
-                  <ErrorText name="joiningDate" />
-                </div>
+
+               {!isEdit && (
+  <div className="xl:col-span-2">
+    <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
+      Joining Date <span className="text-red-500">*</span>
+    </label>
+    <input
+      type="date"
+      name="joiningDate"
+      value={formData.joiningDate}
+      min={today}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      className={fieldClass("joiningDate", "bg-white")}
+    />
+    <ErrorText name="joiningDate" />
+  </div>
+)}
+
+
+
               </div>
             </section>
 
@@ -1383,49 +1390,54 @@ const StaffForm = () => {
                   <ErrorText name="email" />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
-                    Password{" "}
-                    {!isEdit && <span className="text-red-500">*</span>}
-                    {isEdit && (
-                      <span className="text-slate-400 normal-case font-normal">
-                        {" "}
-                        (leave blank to keep current)
-                      </span>
-                    )}
-                  </label>
-                  <input
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    autoComplete="new-password"
-                    maxLength={100}
-                    placeholder={isEdit ? "Leave blank to keep" : "Min 8 characters"}
-                    className={fieldClass("password", "bg-white")}
-                  />
-                  <ErrorText name="password" />
-                </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
-                    Confirm Password{" "}
-                    {!isEdit && <span className="text-red-500">*</span>}
-                  </label>
-                  <input
-                    type="password"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    autoComplete="new-password"
-                    maxLength={100}
-                    placeholder="Re-enter password"
-                    className={fieldClass("confirmPassword", "bg-white")}
-                  />
-                  <ErrorText name="confirmPassword" />
-                </div>
+
+{!isEdit && (
+  <>
+    <div>
+      <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
+        Password <span className="text-red-500">*</span>
+      </label>
+
+      <input
+        type="password"
+        name="password"
+        value={formData.password}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        autoComplete="new-password"
+        maxLength={100}
+        placeholder="Min 8 characters"
+        className={fieldClass("password", "bg-white")}
+      />
+
+      <ErrorText name="password" />
+    </div>
+
+    <div>
+      <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
+        Confirm Password <span className="text-red-500">*</span>
+      </label>
+
+      <input
+        type="password"
+        name="confirmPassword"
+        value={formData.confirmPassword}
+        onChange={handleChange}
+        onBlur={handleBlur}
+        autoComplete="new-password"
+        maxLength={100}
+        placeholder="Re-enter password"
+        className={fieldClass("confirmPassword", "bg-white")}
+      />
+
+      <ErrorText name="confirmPassword" />
+    </div>
+  </>
+)}
+
+
+
               </div>
             </section>
 

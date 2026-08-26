@@ -196,6 +196,27 @@ const PaymentService = {
   },
 
 
+
+  // =========================================================
+// GENERATE INSTALLMENTS
+// =========================================================
+
+generateInstallments: async (enrollmentId) => {
+  try {
+    const res = await axiosClient.post(
+      `/installment/enrollment/${enrollmentId}/generate`
+    );
+
+    return res.data;
+  } catch (error) {
+    throw normalizeError(
+      error,
+      "Failed to generate installments"
+    );
+  }
+},
+
+
   // =========================================================
   // GET INSTALLMENTS BY ENROLLMENT
   // =========================================================

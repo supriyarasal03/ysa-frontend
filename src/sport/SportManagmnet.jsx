@@ -9,11 +9,14 @@ import {
   Filter,
   Trophy,
   Users,
-  ChevronDown,
+  Power,
 } from "lucide-react";
 import { getAllSports, updateSportStatus } from "./sportService"; // adjust path
 
 export default function SportManagmnet() {
+
+ // { label, url }
+
   const navigate = useNavigate();
 
   const [search, setSearch] = useState("");
@@ -137,6 +140,7 @@ export default function SportManagmnet() {
   };
 
   return (
+
     <div className="p-6 lg:p-8">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
@@ -300,44 +304,57 @@ export default function SportManagmnet() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center justify-center gap-2">
-                          {/* Edit */}
-                          <button
-                            onClick={() =>
-                              navigate(`/sport-form/${sport.id}`)
-                            }
-                            className="p-2 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition"
-                            title="Edit"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
 
-                          {/* Status dropdown */}
-                          <div className="relative">
-                            <select
-                              value=""
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                if (value) {
-                                  openStatusConfirm(sport, value);
-                                  e.target.value = "";
-                                }
-                              }}
-                              className="appearance-none bg-slate-50 border border-slate-200 text-slate-600 text-xs rounded-lg pl-3 pr-7 py-1.5 focus:outline-none focus:ring-2 focus:ring-sky-500/40 cursor-pointer"
-                              title="Change status"
-                            >
-                              <option value="" disabled>
-                                Change status
-                              </option>
-                              {isActive ? (
-                                <option value="INACTIVE">Set Inactive</option>
-                              ) : (
-                                <option value="ACTIVE">Set Active</option>
-                              )}
-                            </select>
-                            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-                          </div>
-                        </div>
+
+
+
+
+
+<div className="flex items-center justify-center gap-2">
+
+  {/* Edit */}
+  <button
+    onClick={() =>
+      navigate(`/sport-form/${sport.id}`)
+    }
+    className="p-2 rounded-lg text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition"
+    title="Edit"
+  >
+    <Edit2 className="w-4 h-4" />
+  </button>
+
+  {/* Active / Inactive */}
+  <button
+    type="button"
+    onClick={() =>
+      openStatusConfirm(
+        sport,
+        isActive ? "INACTIVE" : "ACTIVE"
+      )
+    }
+    className={`p-2 rounded-lg transition ${
+      isActive
+        ? "text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+        : "text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
+    }`}
+    title={isActive ? "Set Inactive" : "Set Active"}
+  >
+    <Power className="w-4 h-4" />
+  </button>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
                       </td>
                     </tr>
                   );

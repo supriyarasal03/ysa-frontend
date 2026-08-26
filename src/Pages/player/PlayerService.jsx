@@ -1,39 +1,120 @@
 import axiosClient from "../../api/axiosClient";
 
 const PlayerService = {
-  // Get all players
+
+  // =========================================================
+  // GET ALL PLAYERS
+  // =========================================================
+
   getAll: async () => {
-    const res = await axiosClient.get("/player");   // ✅ correct
+    const res = await axiosClient.get("/player");
     return res.data;
   },
 
-  // Get single player
+
+  // =========================================================
+  // GET PLAYER BY ID
+  // =========================================================
+
   getById: async (id) => {
-    const res = await axiosClient.get(`/player/${id}`);  // ✅ correct
+    const res = await axiosClient.get(`/player/${id}`);
     return res.data;
   },
 
-  // Create player (multipart)
+
+  // =========================================================
+  // GET ALL SPORTS
+  // =========================================================
+
+  getSports: async () => {
+    const res = await axiosClient.get("/sport");
+    return res.data;
+  },
+
+
+  // =========================================================
+  // OLD CREATE PLAYER
+  // =========================================================
+
   create: async (formData) => {
-    const res = await axiosClient.post("/player", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const res = await axiosClient.post(
+      "/player",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
     return res.data;
   },
 
-  // Update player (when you add it later)
+
+  // =========================================================
+  // ONE FORM PLAYER REGISTRATION
+  // PLAYER + ENROLLMENT + INSTALLMENTS + PAYMENT
+  // =========================================================
+
+  register: async (formData) => {
+    const res = await axiosClient.post(
+      "/player/register",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
+    return res.data;
+  },
+
+
+  // =========================================================
+  // UPDATE PLAYER
+  // =========================================================
+
   update: async (id, formData) => {
-    const res = await axiosClient.put(`/player/${id}`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const res = await axiosClient.put(
+      `/player/${id}`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+
     return res.data;
   },
 
-  // Delete / deactivate
-  delete: async (id) => {
-    const res = await axiosClient.delete(`/player/${id}`);
+
+  // =========================================================
+  // ACTIVATE PLAYER
+  // =========================================================
+
+  activate: async (id) => {
+    const res = await axiosClient.put(
+      `/player/${id}/activate`
+    );
+
     return res.data;
   },
+
+
+  // =========================================================
+  // DEACTIVATE PLAYER
+  // =========================================================
+
+  deactivate: async (id) => {
+    const res = await axiosClient.put(
+      `/player/${id}/deactivate`
+    );
+
+    return res.data;
+  },
+
 };
 
 export default PlayerService;
