@@ -66,6 +66,11 @@ import AddInventory from "./Pages/inventory/AddInventory";
 
 import ReceiveStock from "./Pages/inventory/ReceiveStock";
 import InventoryTransactionHistory from "./Pages/inventory/InventoryTransactionHistory";
+import CoachLayout from "./components/layout/CoachLayout";
+import AdminAttendanceManagement from "./Pages/admin/AdminAttendanceManagment";
+import ReceptionistAttendanceManagmnet from "./Pages/receptionist/ReceptionistAttendanceManagmnet";
+import InnventoryManagerAttendance from "./Pages/innventoty-manager/InnventoryManagerAttendance";
+import CoachAttendanceManagement from "./Pages/coach/CoachAttendanceManagment";
 
 function App() {
   return (
@@ -91,6 +96,8 @@ function App() {
         {/* ADMIN */}
         <Route element={<AdminLayout />}>
           <Route path="/admin" element={<AdminDashboar />} />
+
+          <Route path="/admin/attendance" element={<AdminAttendanceManagement/>} />
 
           <Route path="/admin/staff-management" element={<StaffManagement />} />
           <Route path="/staff-form" element={<StaffForm />} />
@@ -137,6 +144,9 @@ function App() {
     element={<InnventoryManagerDashboard />}
   />
 
+
+  <Route path="/innventory-attendance"  element={<InnventoryManagerAttendance/>} />s
+
   <Route
     path="/inventory"
     element={<InventoryManagement />}
@@ -171,6 +181,8 @@ function App() {
           <Route path="/receptionist" element={<ReceptionistDashboard />} />
           <Route path="/receptionist/dashboard" element={<ReceptionistDashboard />} />
 
+          <Route path="/receptionist-attendance" element={<ReceptionistAttendanceManagmnet/>}/>
+
           {/* Players */}
           <Route path="/receptionist/players" element={<PlayerManagement />} />
           <Route path="/receptionist/player-form" element={<PlayerForm />} />
@@ -185,6 +197,24 @@ function App() {
           {/* PAYMENT COLLECTION FORM */}
           <Route path="/receptionist/payment-form" element={<PaymentForm />} />
         </Route>
+
+
+
+
+            
+
+            <Route element={<CoachLayout/>} >
+            <Route path="/coach" element={<CoachDashboard/>}/>
+
+            <Route path="/coach-attendance" element={<CoachAttendanceManagement/>} />
+            
+            </Route>
+
+
+
+
+
+
       </Routes>
     </BrowserRouter>
   );

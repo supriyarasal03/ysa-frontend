@@ -44,7 +44,9 @@ const Login = () => {
         localStorage.setItem("role", role);
 
         if (role === "ADMIN") navigate("/admin");
-        else if (role === "COACH") navigate("/coach-dashboard");
+
+        else if (role === "COACH") navigate("/coach");
+
         else if (role === "RECEPTIONIST") navigate("/receptionist");
         else if (role=== "INVENTORY_MANAGER") navigate("/innventory-manager");
           else if (role=== "CLEANING_STAFF") navigate("cleaningStaff");

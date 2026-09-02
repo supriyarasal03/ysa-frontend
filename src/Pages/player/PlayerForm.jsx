@@ -208,6 +208,10 @@ const PlayerForm = () => {
   const [qrData, setQrData] = useState(null);
   const [qrLoading, setQrLoading] = useState(false);
   const [upiScreenshot, setUpiScreenshot] = useState(null);
+
+  // Lock enrollment, inventory and payment selections after payment.
+  const [paymentLocked, setPaymentLocked] = useState(false);
+
   // Inventory selected during the same registration form.
   const [inventory, setInventory] = useState([]);
   const [inventorySubItem, setInventorySubItem] = useState("");
@@ -384,10 +388,15 @@ const availableBatches = useMemo(() => {
       !batch.status ||
       String(batch.status).toUpperCase() === "ACTIVE";
 
-    // API currently provides capacity, not availableSeats.
-    const capacity = Number(batch.capacity ?? 0);
+    // IMPORTANT:
+    // Backend returns:
+    // availableSeats = capacity - currentPlayers
+    //
+    // A full batch has availableSeats = 0, so it must
+    // NOT appear while registering a new player.
+    const availableSeats = Number(batch.availableSeats ?? 0);
 
-    return sameSport && active && capacity > 0;
+    return sameSport && active && availableSeats > 0;
   });
 }, [batches, form.sportId]);
 
@@ -397,27 +406,54 @@ const availableBatches = useMemo(() => {
 
 
 
-  const selectedBatch = availableBatches.find(
-    (batch) =>
-      String(batch.id) === String(form.batchId)
-  );
+  // In EDIT mode the current batch must still be displayed even if
+  // that batch has become full. It is read-only and cannot be changed.
+  // For NEW registration, only batches with available seats are allowed.
+  const selectedBatch = isEdit
+    ? batches.find(
+        (batch) =>
+          String(batch.id) === String(form.batchId)
+      )
+    : availableBatches.find(
+        (batch) =>
+          String(batch.id) === String(form.batchId)
+      );
 
 
-const selectedFee = selectedBatch
+
+
+ const selectedFee = selectedBatch
   ? {
       amount: Number(selectedBatch.fee || 0),
-      discount: Number(selectedBatch.discount || 0),
-      finalFee: Number(
-        selectedBatch.finalFee ??
-          (
-            Number(selectedBatch.fee || 0) -
-            Number(selectedBatch.discount || 0)
-          )
+
+      // Database discount is stored as PERCENTAGE
+      discountPercent: Number(selectedBatch.discount || 0),
+
+      // Convert percentage discount into actual rupee amount
+      discountAmount: Number(
+        (
+          Number(selectedBatch.fee || 0) *
+          Number(selectedBatch.discount || 0) /
+          100
+        ).toFixed(2)
       ),
+
+      finalFee: Number(
+        (
+          Number(selectedBatch.fee || 0) -
+          (
+            Number(selectedBatch.fee || 0) *
+            Number(selectedBatch.discount || 0) /
+            100
+          )
+        ).toFixed(2)
+      ),
+
       duration: selectedBatch.courseDuration || 0,
       durationUnit: selectedBatch.courseDurationUnit || "",
     }
   : null;
+
 
 
   // =========================================================
@@ -429,13 +465,23 @@ const selectedFee = selectedBatch
   selectedBatch?.fee || 0
 );
 
-  const configuredDiscount = Math.max(
-    0,
-    Math.min(
-      originalCourseFee,
-      Number(selectedBatch?.discount || 0)
-    )
-  );
+
+const discountPercent = Math.max(
+  0,
+  Math.min(
+    100,
+    Number(selectedBatch?.discount || 0)
+  )
+);
+
+const configuredDiscount = Number(
+  (
+    originalCourseFee *
+    discountPercent /
+    100
+  ).toFixed(2)
+);
+
 
   const registrationDiscount =
     paymentPlan === "ONE_TIME"
@@ -460,21 +506,34 @@ const selectedFee = selectedBatch
     (finalCourseFee + inventoryTotal).toFixed(2)
   );
 
-  const installmentAmounts = useMemo(() => {
-    if (paymentPlan !== "THREE_INSTALLMENTS") {
-      return [];
-    }
 
-    const first = Number(
-      (totalRegistrationFee / 3).toFixed(2)
-    );
-    const second = first;
-    const third = Number(
-      (totalRegistrationFee - first - second).toFixed(2)
-    );
+const installmentAmounts = useMemo(() => {
+  // 3 installments always use the full batch/course fee.
+  // Batch discount is NOT applied.
+  // Complete inventory fee is added only to the 1st installment.
 
-    return [first, second, third];
-  }, [paymentPlan, totalRegistrationFee]);
+  const firstCourseAmount = Number(
+    (originalCourseFee / 3).toFixed(2)
+  );
+
+  const second = firstCourseAmount;
+
+  const third = Number(
+    (originalCourseFee - firstCourseAmount - second).toFixed(2)
+  );
+
+  const first = Number(
+    (firstCourseAmount + inventoryTotal).toFixed(2)
+  );
+
+  return [first, second, third];
+}, [
+  originalCourseFee,
+  inventoryTotal,
+]);
+
+
+
 
   useEffect(() => {
     if (!isEdit && paymentPlan) {
@@ -497,6 +556,8 @@ const selectedFee = selectedBatch
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
+    if (paymentLocked && ["sportId", "batchId", "includeInventory", "inventoryFee"].includes(name)) return;
 
     let finalValue = value;
 
@@ -531,6 +592,8 @@ const selectedFee = selectedBatch
   };
 
   const handleSportChange = (e) => {
+    if (paymentLocked) return;
+
     const sportId = e.target.value;
 
    setForm((prev) => ({
@@ -559,6 +622,7 @@ const selectedFee = selectedBatch
     setSelectedInstallment(null);
     setQrData(null);
     setUpiScreenshot(null);
+    setPaymentLocked(false);
 
     setErrors((prev) => ({
       ...prev,
@@ -568,6 +632,8 @@ const selectedFee = selectedBatch
   };
 
   const handleBatchChange = (e) => {
+    if (paymentLocked) return;
+
     setForm((prev) => ({
       ...prev,
       batchId: e.target.value,
@@ -1073,13 +1139,22 @@ if (!isEdit) {
         0
     );
 
-    const configuredDiscount = Math.max(
-      0,
-      Math.min(
-        originalCourseFee,
-        Number(selectedBatch?.discount || 0)
-      )
-    );
+
+   const discountPercent = Math.max(
+  0,
+  Math.min(
+    100,
+    Number(selectedBatch?.discount || 0)
+  )
+);
+
+const configuredDiscount = Number(
+  (
+    originalCourseFee *
+    discountPercent /
+    100
+  ).toFixed(2)
+);
 
     // BUSINESS RULE:
     // ONE_TIME -> discount applies
@@ -1232,14 +1307,32 @@ if (!isEdit) {
 
 const getRegistrationPaymentAmount = () => {
 
-  const batchFee = Number(
-    selectedBatch?.fee || 0
-  );
 
-  const discountedFee = Number(
-    selectedBatch?.finalFee ??
-    batchFee
-  );
+  const batchFee = Number(
+  selectedBatch?.fee || 0
+);
+
+const batchDiscountPercent = Math.max(
+  0,
+  Math.min(
+    100,
+    Number(selectedBatch?.discount || 0)
+  )
+);
+
+const batchDiscountAmount = Number(
+  (
+    batchFee *
+    batchDiscountPercent /
+    100
+  ).toFixed(2)
+);
+
+const discountedFee = Number(
+  (batchFee - batchDiscountAmount).toFixed(2)
+);
+
+
 
   const inventoryFee = form.includeInventory
     ? Number(form.inventoryFee || 0)
@@ -1293,9 +1386,13 @@ const getRegistrationPaymentAmount = () => {
   const handlePaymentMethodChange = (
     method
   ) => {
+    if (paymentLocked) return;
+
     setPaymentMethod(method);
     setQrData(null);
     setUpiScreenshot(null);
+    // Cash is confirmed at the reception counter. UPI locks after proof upload.
+    setPaymentLocked(method === "CASH");
 
     setBackendErrors((prev) => ({
       ...prev,
@@ -1756,7 +1853,7 @@ data.append(
                 <p className="text-xs sm:text-sm text-slate-300 mt-0.5 truncate">
                   {isEdit
                     ? "Update player information"
-                    : "Complete player, enrollment and payment in one form"}
+                    : "Complete player, enrollment, inventory and payment in one form"}
                 </p>
               </div>
             </div>
@@ -1951,7 +2048,7 @@ data.append(
                               isAdult
                                 ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
                                 : "bg-violet-50 text-violet-700 border border-violet-100"
-                            }`}>
+                            }}`}>
                               Age {age} · {isAdult ? "18 or above" : "Under 18"}
                             </div>
                           )}
@@ -2458,79 +2555,767 @@ const documentName =
                         Enrollment Details
                       </h2>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        Select the sport and batch for the player
+                        Select sport and batch; fee and discount come from the batch
                       </p>
                     </div>
                   </div>
 
-                  <div className="p-5 sm:p-6">
+                  <div className="p-5 sm:p-6 space-y-5">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className={fieldLabel}>Sport *</label>
-                        <select
-                          name="sportId"
-                          value={form.sportId}
-                          onChange={handleSportChange}
-                          disabled={isEdit}
-                          className={`${inputClass(
-                            "sportId"
-                          )} disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed`}
-                        >
+<select 
+  name="sportId"
+  value={form.sportId}
+  onChange={handleSportChange}
+  disabled={isEdit || paymentLocked}
+  className={`${inputClass(
+    "sportId"
+  )} disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed`}
+>
+
                           <option value="">Select sport</option>
-                          {availableSports.map((sport) => (
-                            <option
-                              key={getSportId(sport)}
-                              value={getSportId(sport)}
-                            >
-                              {getSportName(sport)}
-                            </option>
-                          ))}
+
+{availableSports.map((sport) => (
+  <option
+    key={getSportId(sport)}
+    value={getSportId(sport)}
+  >
+    {getSportName(sport)}
+  </option>
+))}
+
+
+
                         </select>
-
-                        {isEdit && (
-                          <p className="text-[11px] text-slate-400 mt-1.5">
-                            Sport cannot be changed while editing.
-                          </p>
-                        )}
-
                         {errorText("sportId")}
                       </div>
 
+
+
+
                       <div>
-                        <label className={fieldLabel}>Batch *</label>
+                        <label className={fieldLabel}>Batch </label>
                         <select
                           name="batchId"
                           value={form.batchId}
                           onChange={handleBatchChange}
-                          disabled={!form.sportId || isEdit}
-                          className={`${inputClass(
-                            "batchId"
-                          )} disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed`}
+                         disabled={!form.sportId || isEdit || paymentLocked}
+                          className={`${inputClass("batchId")} disabled:bg-slate-50 disabled:text-slate-400`}
                         >
-                          <option value="">
-                            {form.sportId
-                              ? "Select batch"
-                              : "Select sport first"}
-                          </option>
 
-                          {availableBatches.map((batch) => (
-                            <option key={batch.id} value={batch.id}>
-                              {getBatchName(batch)}
-                            </option>
-                          ))}
+
+                          <option value="">
+  {form.sportId ? "Select batch" : "Select sport first"}
+</option>
+
+{availableBatches.map((batch) => (
+  <option key={batch.id} value={batch.id}>
+    {getBatchName(batch)} —{" "}
+    {formatTime12Hour(batch.startTime)} -{" "}
+    {formatTime12Hour(batch.endTime)} —{" "}
+    {String(batch.trainingDays || "")
+      .split(",")
+      .map((day) => day.trim().slice(0, 3))
+      .join(", ")}
+  </option>
+))}
+
+{/* Keep the player's existing batch visible in EDIT mode,
+    even when that batch is now full. */}
+{isEdit &&
+  form.batchId &&
+  !availableBatches.some(
+    (batch) => String(batch.id) === String(form.batchId)
+  ) &&
+  selectedBatch && (
+    <option value={selectedBatch.id}>
+      {getBatchName(selectedBatch)} —{" "}
+      {formatTime12Hour(selectedBatch.startTime)} -{" "}
+      {formatTime12Hour(selectedBatch.endTime)} —{" "}
+      {String(selectedBatch.trainingDays || "")
+        .split(",")
+        .map((day) => day.trim().slice(0, 3))
+        .join(", ")}{" "}
+      (Full)
+    </option>
+  )}
+
+
+
+
                         </select>
 
-                        {isEdit && (
-                          <p className="text-[11px] text-slate-400 mt-1.5">
-                            Batch cannot be changed while editing.
-                          </p>
-                        )}
+                      {selectedBatch && (
+  <div className="mt-2 space-y-1.5 text-xs text-slate-500">
+    <div className="flex flex-wrap gap-x-4 gap-y-1">
+      <span>
+        <strong className="text-slate-700">Time:</strong>{" "}\
+
+{formatTime12Hour(selectedBatch.startTime)} -{" "}
+{formatTime12Hour(selectedBatch.endTime)}
+
+
+      </span>
+
+      <span>
+        <strong className="text-slate-700">Capacity:</strong>{" "}
+        {selectedBatch.capacity}
+      </span>
+    </div>
+
+    <div>
+      <strong className="text-slate-700">Training Days:</strong>{" "}
+      {String(selectedBatch.trainingDays || "")
+        .split(",")
+        .map((day) => day.trim())
+        .join(", ")}
+    </div>
+  </div>
+)}
+
+
+
 
                         {errorText("batchId")}
+
+                        {isEdit && (
+                          <p className="mt-2 text-xs text-amber-600">
+                            Batch is locked after registration and cannot be changed.
+                          </p>
+                        )}
                       </div>
                     </div>
+
+
+
+<div>
+
+
+
+
+
+
+
+
+  <label className={fieldLabel}>
+    Fee Details
+  </label>
+
+  {!form.batchId ? (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+      Select a batch to view the batch fee and discount.
+    </div>
+  ) : selectedBatch ? (
+    <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4 sm:p-5">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.12em] font-bold text-blue-600">
+            Batch Fee
+          </p>
+          <p className="text-sm font-semibold text-slate-900 mt-1">
+            {getBatchName(selectedBatch)}
+          </p>
+          <p className="text-xs text-slate-500 mt-1">
+            {getFeeDurationText(selectedFee)}
+          </p>
+        </div>
+
+        <div className="text-left sm:text-right">
+          <p className="text-2xl font-bold text-blue-700">
+            ₹{money(originalCourseFee)}
+          </p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Fee from selected batch
+          </p>
+        </div>
+      </div>
+
+
+
+
+
+
+
+
+{/* ONE-TIME PAYMENT INFO */}
+<div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+  <div className="flex items-center justify-between gap-3">
+    <div>
+      <p className="text-[10px] uppercase tracking-wider font-bold text-blue-600">
+        One-time Payment
+      </p>
+      <p className="text-xs text-slate-500 mt-1">
+        Batch discount is applied.
+      </p>
+    </div>
+
+    <p className="text-xl font-bold text-blue-700">
+      ₹{money(
+        Math.max(
+          0,
+          originalCourseFee - configuredDiscount
+        ) + inventoryTotal
+      )}
+    </p>
+  </div>
+
+  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
+
+    {/* BATCH DISCOUNT */}
+    <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+      <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">
+        Batch Discount
+      </p>
+
+      <p className="text-base font-bold text-emerald-600 mt-1">
+        {discountPercent}%
+      </p>
+
+      <p className="text-xs text-slate-500 mt-1">
+        ₹{money(configuredDiscount)} discount
+      </p>
+    </div>
+
+    {/* ONE-TIME COURSE FEE */}
+    <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+      <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">
+        One-time Course Fee
+      </p>
+
+      <p className="text-base font-bold text-slate-900 mt-1">
+        ₹{money(
+          Math.max(
+            0,
+            originalCourseFee - configuredDiscount
+          )
+        )}
+      </p>
+    </div>
+
+    {/* INVENTORY */}
+    <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+      <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">
+        Inventory
+      </p>
+
+      <p className="text-base font-bold text-slate-900 mt-1">
+        ₹{money(inventoryTotal)}
+      </p>
+    </div>
+
+  </div>
+</div>
+
+
+{/* THREE INSTALLMENTS INFO */}
+<div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
+  <div className="flex items-center justify-between gap-3">
+    <div>
+      <p className="text-[10px] uppercase tracking-wider font-bold text-blue-600">
+        3 Installments
+      </p>
+      <p className="text-xs text-slate-500 mt-1">
+        No batch discount is applied.
+      </p>
+    </div>
+
+    <p className="text-xl font-bold text-blue-700">
+      ₹{money(
+        originalCourseFee + inventoryTotal
+      )}
+    </p>
+  </div>
+
+  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
+
+    {/* INSTALLMENT 1 */}
+    <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+      <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">
+        Installment 1
+      </p>
+
+      <p className="text-base font-bold text-blue-700 mt-1">
+        ₹{money(installmentAmounts[0] || 0)}
+      </p>
+
+      <p className="text-xs text-slate-500 mt-1">
+        Course fee + full inventory
+      </p>
+    </div>
+
+    {/* INSTALLMENT 2 */}
+    <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+      <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">
+        Installment 2
+      </p>
+
+      <p className="text-base font-bold text-blue-700 mt-1">
+        ₹{money(installmentAmounts[1] || 0)}
+      </p>
+
+      <p className="text-xs text-slate-500 mt-1">
+        Course fee
+      </p>
+    </div>
+
+    {/* INSTALLMENT 3 */}
+    <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+      <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">
+        Installment 3
+      </p>
+
+      <p className="text-base font-bold text-blue-700 mt-1">
+        ₹{money(installmentAmounts[2] || 0)}
+      </p>
+
+      <p className="text-xs text-slate-500 mt-1">
+        Course fee
+      </p>
+    </div>
+
+  </div>
+
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+
+    {/* DISCOUNT */}
+    <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+      <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">
+        Discount
+      </p>
+
+      <p className="text-base font-bold text-slate-700 mt-1">
+        Not Applied
+      </p>
+
+      <p className="text-xs text-slate-500 mt-1">
+        ₹0.00 discount
+      </p>
+    </div>
+
+    {/* DURATION */}
+    <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+      <p className="text-[10px] uppercase tracking-wider font-semibold text-slate-400">
+        Duration
+      </p>
+
+      <p className="text-base font-bold text-slate-900 mt-1">
+        {getFeeDurationText(selectedFee)}
+      </p>
+    </div>
+
+  </div>
+</div>
+
+
+    </div>
+  ) : (
+    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+      The selected batch could not be loaded.
+    </div>
+  )}
+
+
+
+
+
+
+
+
+
+
+
+
+                    {/* INVENTORY */}
+                    {!isEdit && (
+                    <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+                      <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/60">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-blue-600">
+                          Inventory
+                        </p>
+                        <h3 className="text-base font-semibold text-slate-900 mt-1">
+                          Do you want inventory for this player?
+                        </h3>
+                        <p className="text-xs text-slate-500 mt-1">
+                          Select academy equipment only when the player is taking stock.
+                        </p>
+                      </div>
+
+                      <div className="p-5 space-y-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <button
+                            type="button"
+                            disabled={paymentLocked}
+                            onClick={() => {
+                              if (paymentLocked) return;
+                              setForm((prev) => ({
+                                ...prev,
+                                includeInventory: true,
+                              }));
+                              setErrors((prev) => ({
+                                ...prev,
+                                inventoryFee: "",
+                              }));
+                            }}
+                            className={`rounded-2xl border-2 p-5 text-left transition ${
+                              form.includeInventory
+                                ? "border-blue-600 bg-blue-50 shadow-sm"
+                                : "border-slate-200 bg-white hover:border-slate-300"
+                            } ${paymentLocked ? "opacity-60 cursor-not-allowed" : ""}`}
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div>
+                                <p className="font-semibold text-slate-900">Yes</p>
+                                <p className="text-xs text-slate-500 mt-1">
+                                  Player wants academy inventory
+                                </p>
+                              </div>
+                              <span className={`w-5 h-5 rounded-full border-2 shrink-0 ${
+                                form.includeInventory
+                                  ? "border-blue-600 bg-blue-600"
+                                  : "border-slate-300 bg-white"
+                              } ${paymentLocked ? "opacity-60 cursor-not-allowed" : ""}`} />
+                            </div>
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={paymentLocked}
+                            onClick={() => {
+                              if (paymentLocked) return;
+                              setForm((prev) => ({
+                                ...prev,
+                                includeInventory: false,
+                                inventoryFee: "0",
+                              }));
+                              setInventorySubItem("");
+                              setInventoryBrand("");
+                              setInventoryId("");
+                              setInventoryQuantity("1");
+                              setSelectedInventoryItems([]);
+                            }}
+                            className={`rounded-2xl border-2 p-5 text-left transition ${
+                              !form.includeInventory
+                                ? "border-blue-600 bg-blue-50 shadow-sm"
+                                : "border-slate-200 bg-white hover:border-slate-300"
+                            } ${paymentLocked ? "opacity-60 cursor-not-allowed" : ""}`}
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div>
+                                <p className="font-semibold text-slate-900">No</p>
+                                <p className="text-xs text-slate-500 mt-1">
+                                  No inventory required
+                                </p>
+                              </div>
+                              <span className={`w-5 h-5 rounded-full border-2 shrink-0 ${
+                                !form.includeInventory
+                                  ? "border-blue-600 bg-blue-600"
+                                  : "border-slate-300 bg-white"
+                              } ${paymentLocked ? "opacity-60 cursor-not-allowed" : ""}`} />
+                            </div>
+                          </button>
+                        </div>
+
+                        {!form.includeInventory ? (
+                          <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-3 text-xs text-slate-500">
+                            No inventory will be added to this registration.
+                          </div>
+                        ) : (
+                          <div className="rounded-2xl border border-blue-100 bg-blue-50/40 p-4 sm:p-5 space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div>
+                                <label className={fieldLabel}>Inventory Item *</label>
+                                <select
+                                  value={inventorySubItem}
+                                  onChange={(e) => {
+                                    setInventorySubItem(e.target.value);
+                                    setInventoryBrand("");
+                                    setInventoryId("");
+                                  }}
+                                  disabled={!form.sportId || inventoryLoading || paymentLocked}
+                                  className={`${inputClass("inventorySubItem")} disabled:bg-slate-100`}
+                                >
+                                  <option value="">
+                                    {form.sportId ? "Select item" : "Select sport first"}
+                                  </option>
+                                  {[...new Set(
+                                    inventory
+                                      .filter(
+                                        (item) =>
+                                          String(item?.sportId) === String(form.sportId) &&
+                                          String(item?.status || "ACTIVE").toUpperCase() === "ACTIVE" &&
+                                          Number(item?.currentStock || 0) > 0
+                                      )
+                                      .map((item) => item?.subItem)
+                                      .filter(Boolean)
+                                  )]
+                                    .sort()
+                                    .map((item) => (
+                                      <option key={item} value={item}>
+                                        {item}
+                                      </option>
+                                    ))}
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className={fieldLabel}>Brand *</label>
+                                <select
+                                  value={inventoryBrand}
+                                  onChange={(e) => {
+                                    setInventoryBrand(e.target.value);
+                                    setInventoryId("");
+                                  }}
+                                  disabled={!inventorySubItem || paymentLocked}
+                                  className={`${inputClass("inventoryBrand")} disabled:bg-slate-100`}
+                                >
+                                  <option value="">
+                                    {inventorySubItem ? "Select brand" : "Select item first"}
+                                  </option>
+                                  {inventory
+                                    .filter(
+                                      (item) =>
+                                        String(item?.sportId) === String(form.sportId) &&
+                                        String(item?.subItem || "").toLowerCase() ===
+                                          String(inventorySubItem).toLowerCase() &&
+                                        String(item?.status || "ACTIVE").toUpperCase() === "ACTIVE" &&
+                                        Number(item?.currentStock || 0) > 0
+                                    )
+                                    .map((item) => item?.brand)
+                                    .filter(Boolean)
+                                    .filter((value, index, arr) => arr.indexOf(value) === index)
+                                    .sort()
+                                    .map((brand) => (
+                                      <option key={brand} value={brand}>
+                                        {brand}
+                                      </option>
+                                    ))}
+                                </select>
+                              </div>
+
+                              
+
+
+
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-[1fr_180px_auto] gap-4 items-end">
+                              <div>
+                                <label className={fieldLabel}>Selected Inventory</label>
+                                <select
+                                  value={inventoryId}
+                                  onChange={(e) => setInventoryId(e.target.value)}
+                                  disabled={!inventoryBrand || paymentLocked}
+                                  className={`${inputClass("inventoryId")} disabled:bg-slate-100`}
+                                >
+                                  <option value="">
+                                    {inventoryBrand ? "Select product" : "Select brand first"}
+                                  </option>
+                                  {inventory
+                                    .filter(
+                                      (item) =>
+                                        String(item?.sportId) === String(form.sportId) &&
+                                        String(item?.subItem || "").toLowerCase() ===
+                                          String(inventorySubItem).toLowerCase() &&
+                                        String(item?.brand || "").toLowerCase() ===
+                                          String(inventoryBrand).toLowerCase() &&
+                                        String(item?.status || "ACTIVE").toUpperCase() === "ACTIVE" &&
+                                        Number(item?.currentStock || 0) > 0
+                                    )
+                                    .map((item) => (
+                                      <option key={item.id} value={item.id}>
+                                        {item.subItem} — {item.brand} — ₹{money(item.sellingPrice)}
+                                      </option>
+                                    ))}
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className={fieldLabel}>Quantity *</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max={
+                                    inventory.find(
+                                      (item) => String(item?.id) === String(inventoryId)
+                                    )?.currentStock || 1
+                                  }
+                                  value={inventoryQuantity}
+                                  onChange={(e) => {
+                                    if (paymentLocked) return;
+                                    setInventoryQuantity(
+                                      e.target.value.replace(/\D/g, "").slice(0, 3)
+                                    );
+                                  }}
+                                  disabled={paymentLocked}
+                                  className={`${inputClass("inventoryQuantity")} disabled:bg-slate-100 disabled:cursor-not-allowed`}
+                                />
+                              </div>
+
+                              <button
+                                type="button"
+                                disabled={paymentLocked}
+                                onClick={() => {
+                                  if (paymentLocked) return;
+                                  const item = inventory.find(
+                                    (entry) => String(entry?.id) === String(inventoryId)
+                                  );
+                                  const quantity = Number(inventoryQuantity);
+
+                                  if (!item || quantity <= 0) {
+                                    setBackendErrors((prev) => ({
+                                      ...prev,
+                                      inventoryId: "Select an inventory item and valid quantity.",
+                                    }));
+                                    return;
+                                  }
+
+                                  const available = Number(item.currentStock || 0);
+                                  const alreadySelected = selectedInventoryItems.find(
+                                    (entry) => String(entry.id) === String(item.id)
+                                  );
+                                  const totalRequested =
+                                    quantity + Number(alreadySelected?.quantity || 0);
+
+                                  if (totalRequested > available) {
+                                    setBackendErrors((prev) => ({
+                                      ...prev,
+                                      inventoryId: `Only ${available} unit(s) available for ${item.subItem} - ${item.brand}.`,
+                                    }));
+                                    return;
+                                  }
+
+                                  setSelectedInventoryItems((prev) => {
+                                    if (alreadySelected) {
+                                      return prev.map((entry) =>
+                                        String(entry.id) === String(item.id)
+                                          ? { ...entry, quantity: totalRequested }
+                                          : entry
+                                      );
+                                    }
+
+                                    return [
+                                      ...prev,
+                                      {
+                                        ...item,
+                                        quantity,
+                                        unitPrice: Number(item.sellingPrice || 0),
+                                        totalPrice:
+                                          Number(item.sellingPrice || 0) * quantity,
+                                      },
+                                    ];
+                                  });
+
+                                  setInventoryId("");
+                                  setInventoryQuantity("1");
+                                  setBackendErrors((prev) => ({
+                                    ...prev,
+                                    inventoryId: "",
+                                  }));
+                                }}
+                                className="h-11 px-5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition"
+                              >
+                                Add Item
+                              </button>
+                            </div>
+
+                            {backendErrors.inventoryId && (
+                              <p className="text-xs text-red-500">
+                                {backendErrors.inventoryId}
+                              </p>
+                            )}
+
+                            {selectedInventoryItems.length > 0 && (
+                              <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+                                <div className="px-4 py-3 border-b border-slate-100">
+                                  <p className="text-sm font-semibold text-slate-800">
+                                    Selected Inventory
+                                  </p>
+                                </div>
+
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-sm">
+                                    <thead className="bg-slate-50">
+                                      <tr>
+                                        <th className="p-3 text-left">Item</th>
+                                        <th className="p-3 text-left">Brand</th>
+                                        <th className="p-3 text-center">Qty</th>
+                                        <th className="p-3 text-right">Price</th>
+                                        <th className="p-3 text-right">Total</th>
+                                        <th className="p-3 text-center">Action</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {selectedInventoryItems.map((item) => (
+                                        <tr key={item.id} className="border-t border-slate-100">
+                                          <td className="p-3 font-medium">{item.subItem}</td>
+                                          <td className="p-3">{item.brand}</td>
+                                          <td className="p-3 text-center">{item.quantity}</td>
+                                          <td className="p-3 text-right">₹{money(item.unitPrice)}</td>
+                                          <td className="p-3 text-right font-semibold">
+                                            ₹{money(item.unitPrice * item.quantity)}
+                                          </td>
+                                          <td className="p-3 text-center">
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                if (paymentLocked) return;
+                                                setSelectedInventoryItems((prev) =>
+                                                  prev.filter(
+                                                    (entry) => String(entry.id) !== String(item.id)
+                                                  )
+                                                );
+                                              }}
+                                              disabled={paymentLocked}
+                                              className="w-8 h-8 rounded-lg text-red-500 hover:bg-red-50 inline-flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+                                              title="Remove item"
+                                            >
+                                              <X className="w-4 h-4" />
+                                            </button>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+
+                                <div className="flex items-center justify-between border-t border-slate-100 px-4 py-4">
+                                  <span className="text-sm font-semibold text-slate-600">
+                                    Inventory Total
+                                  </span>
+                                  <span className="text-xl font-bold text-blue-700">
+                                    ₹{money(
+                                      selectedInventoryItems.reduce(
+                                        (sum, item) =>
+                                          sum +
+                                          Number(item.unitPrice || item.sellingPrice || 0) *
+                                            Number(item.quantity || 0),
+                                        0
+                                      )
+                                    )}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+
+
+
+
+
+
+
+
+                    
+
                   </div>
-                </section>
+                    )}
+                </div>
+                  </div>
+              </section>
 
                 {/* 06 PAYMENT */}
                 {!isEdit && selectedFee && (
@@ -2559,7 +3344,9 @@ const documentName =
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <button
                             type="button"
+                            disabled={paymentLocked}
                             onClick={() => {
+                              if (paymentLocked) return;
                               setPaymentPlan("ONE_TIME");
                               setPaymentMethod("");
                               setQrData(null);
@@ -2584,13 +3371,15 @@ const documentName =
                                 paymentPlan === "ONE_TIME"
                                   ? "border-blue-600 bg-blue-600"
                                   : "border-slate-300"
-                              }`} />
+                              } ${paymentLocked ? "opacity-60 cursor-not-allowed" : ""}`} />
                             </div>
                           </button>
 
                           <button
                             type="button"
+                            disabled={paymentLocked}
                             onClick={() => {
+                              if (paymentLocked) return;
                               setPaymentPlan("THREE_INSTALLMENTS");
                               setPaymentMethod("");
                               setQrData(null);
@@ -2615,7 +3404,7 @@ const documentName =
                                 paymentPlan === "THREE_INSTALLMENTS"
                                   ? "border-blue-600 bg-blue-600"
                                   : "border-slate-300"
-                              }`} />
+                              } ${paymentLocked ? "opacity-60 cursor-not-allowed" : ""}`} />
                             </div>
                           </button>
                         </div>
@@ -2662,6 +3451,12 @@ const documentName =
                             <span className="text-slate-500">Final Course Fee</span>
                             <span className="font-semibold">₹{money(finalCourseFee)}</span>
                           </div>
+                          <div className="flex justify-between">
+                            <span className="text-slate-500">Inventory</span>
+                            <span className="font-semibold">
+                              ₹{money(inventoryTotal)}
+                            </span>
+                          </div>
                           <div className="border-t border-slate-200 pt-3 flex justify-between">
                             <span className="font-semibold text-slate-800">Total</span>
                             <span className="font-bold text-blue-700">
@@ -2698,11 +3493,12 @@ const documentName =
                             <button
                               type="button"
                               onClick={() => handlePaymentMethodChange("CASH")}
+                              disabled={paymentLocked}
                               className={`rounded-2xl border-2 p-5 text-left transition ${
                                 paymentMethod === "CASH"
                                   ? "border-emerald-600 bg-emerald-50"
                                   : "border-slate-200 bg-white hover:border-slate-300"
-                              }`}
+                              } ${paymentLocked ? "opacity-60 cursor-not-allowed" : ""}`}
                             >
                               <div className="flex items-start justify-between">
                                 <div>
@@ -2718,6 +3514,7 @@ const documentName =
                             <button
                               type="button"
                               onClick={() => handlePaymentMethodChange("UPI")}
+                              disabled={paymentLocked}
                               className={`rounded-2xl border-2 p-5 text-left transition ${
                                 paymentMethod === "UPI"
                                   ? "border-blue-600 bg-blue-50"
@@ -2755,7 +3552,7 @@ const documentName =
                             <button
                               type="button"
                               onClick={handleGenerateQr}
-                              disabled={qrLoading || !paymentAmount}
+                              disabled={qrLoading || !paymentAmount || paymentLocked}
                               className="h-11 px-5 inline-flex items-center justify-center gap-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50"
                             >
                               {qrLoading ? (
@@ -2771,6 +3568,12 @@ const documentName =
                               )}
                             </button>
                           </div>
+
+                          {paymentLocked && (
+                            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-700">
+                              Payment confirmed. Sport, batch, inventory and payment selections are now locked.
+                            </div>
+                          )}
 
                           {qrData?.qrCodeBase64 && (
                             <div className="mt-5 grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-5">
@@ -2805,11 +3608,13 @@ const documentName =
                                   type="file"
                                   accept="image/*"
                                   className="hidden"
-                                  onChange={(e) =>
-                                    setUpiScreenshot(
-                                      e.target.files?.[0] || null
-                                    )
-                                  }
+                                  disabled={paymentLocked}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0] || null;
+                                    if (!file) return;
+                                    setUpiScreenshot(file);
+                                    setPaymentLocked(true);
+                                  }}
                                 />
                               </label>
                             </div>
@@ -2899,7 +3704,7 @@ const documentName =
                       <p className="text-xs text-slate-500 mt-1">
                         {isEdit
                           ? "Review the details before saving changes."
-                          : "All player, enrollment and payment details will be submitted together."}
+                          : "All player, enrollment, inventory and payment details will be submitted together."}
                       </p>
                     </div>
 

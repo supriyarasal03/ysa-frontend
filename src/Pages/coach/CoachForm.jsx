@@ -55,6 +55,19 @@ export default function CoachForm() {
 
   const isEditMode = Boolean(id);
 
+
+
+const getTodayDate = () => {
+  const today = new Date();
+
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+
   const fileInputRefs = {
     livePhoto: useRef(null),
 
@@ -78,9 +91,16 @@ export default function CoachForm() {
     lastName: useRef(null),
     mobileNumber: useRef(null),
     gender: useRef(null),
+
+
     dateOfBirth: useRef(null),
-    joiningDate: useRef(null),
-    address: useRef(null),
+
+joiningDate: useRef(null),
+
+address: useRef(null),
+
+
+
     sportId: useRef(null),
     experience: useRef(null),
     qualification: useRef(null),
@@ -139,8 +159,8 @@ const [sportsLoading, setSportsLoading] = useState(false);
     mobileNumber: "",
     gender: "",
     dateOfBirth: "",
-    joiningDate: "",
-    address: "",
+   joiningDate: getTodayDate(),
+    address: "",  
 
     // Professional
     sportId: "",
@@ -856,20 +876,22 @@ experience:
       // JOINING DATE
       // -------------------------------------------------------
 
-      case "joiningDate":
+     case "joiningDate":
 
-        if (!val) {
-          return "Joining date is required";
-        }
+  if (!val) {
+    return "Joining date is required";
+  }
 
-        if (
-          new Date(val) >
-          new Date()
-        ) {
-          return "Joining date cannot be a future date";
-        }
+  const today = getTodayDate();
 
-        return "";
+  if (val < today) {
+    return "Joining date cannot be a past date";
+  }
+
+  return "";
+
+
+
 
 
       // -------------------------------------------------------
@@ -1391,7 +1413,7 @@ const resetCoachForm = () => {
     mobileNumber: "",
     gender: "",
     dateOfBirth: "",
-    joiningDate: "",
+   joiningDate: getTodayDate(),
     address: "",
 
     experience: "",
@@ -2977,15 +2999,20 @@ const handleRemoveDocument = (config) => {
       JOINING DATE *
     </label>
 
-    <input
-      ref={fieldRefs.joiningDate}
-      type="date"
-      name="joiningDate"
-      value={formData.joiningDate}
-      onChange={handleChange}
-      onBlur={handleBlur}
-      className={inputClass("joiningDate")}
-    />
+
+
+<input
+  ref={fieldRefs.joiningDate}
+  type="date"
+  name="joiningDate"
+  value={formData.joiningDate}
+  min={getTodayDate()}
+  onChange={handleChange}
+  onBlur={handleBlur}
+  className={inputClass("joiningDate")}
+/>
+
+
 
     <FieldError field="joiningDate" />
 
@@ -3112,13 +3139,6 @@ const handleRemoveDocument = (config) => {
   <FieldError field="sportId" />
 
 </div>
-
-
-
-
-
-
-
 
 
 

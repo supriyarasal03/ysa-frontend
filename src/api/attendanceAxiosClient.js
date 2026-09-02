@@ -1,11 +1,10 @@
 import axios from "axios";
 
-const api = axios.create({
-  baseURL: "http://localhost:8080/api",
+const attendanceAxiosClient = axios.create({
+  baseURL: "http://192.168.0.106:8080/api",
 });
 
-// Attach JWT token to protected API requests
-api.interceptors.request.use((config) => {
+attendanceAxiosClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
 
   if (token && !config.url?.startsWith("/auth")) {
@@ -15,4 +14,4 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-export default api;
+export default attendanceAxiosClient;

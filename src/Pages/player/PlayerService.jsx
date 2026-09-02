@@ -115,6 +115,129 @@ const PlayerService = {
     return res.data;
   },
 
+
+  // =========================================================
+  // GET PLAYER DOCUMENT AS BLOB
+  // =========================================================
+  // Returns only the Blob.
+  // Use getPlayerDocument() when headers are also required.
+  // =========================================================
+
+  getDocument: async (playerId, documentType) => {
+    const res = await axiosClient.get(
+      `/player/${playerId}/documents/${documentType}`,
+      {
+        responseType: "blob",
+      }
+    );
+
+    return res.data;
+  },
+
+
+  // =========================================================
+  // GET PLAYER DOCUMENT RESPONSE
+  // =========================================================
+  // Returns the complete Axios response.
+  // This is used by PlayerManagement for:
+  // - response.data (Blob)
+  // - response.headers (file name / content type)
+  // =========================================================
+
+  getPlayerDocument: async (playerId, documentType) => {
+    const res = await axiosClient.get(
+      `/player/${playerId}/documents/${documentType}`,
+      {
+        responseType: "blob",
+      }
+    );
+
+    return res;
+  },
+
+
+  // =========================================================
+  // GET DOCUMENT URL
+  // =========================================================
+
+  getDocumentUrl: (playerId, documentType) => {
+    return `/api/player/${playerId}/documents/${documentType}`;
+  },
+
+
+  // =========================================================
+  // VIEW DOCUMENT
+  // =========================================================
+
+  viewDocument: async (playerId, documentType) => {
+    const blob = await PlayerService.getDocument(
+      playerId,
+      documentType
+    );
+
+    const blobUrl = window.URL.createObjectURL(blob);
+
+    window.open(
+      blobUrl,
+      "_blank",
+      "noopener,noreferrer"
+    );
+
+    setTimeout(() => {
+      window.URL.revokeObjectURL(blobUrl);
+    }, 10000);
+  },
+
+
+  // =========================================================
+  // DOWNLOAD DOCUMENT
+  // =========================================================
+
+  downloadDocument: async (
+    playerId,
+    documentType,
+    fileName
+  ) => {
+    const blob = await PlayerService.getDocument(
+      playerId,
+      documentType
+    );
+
+    const blobUrl = window.URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+
+    link.href = blobUrl;
+
+    link.download =
+      fileName ||
+      `${documentType}-${playerId}`;
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
+    setTimeout(() => {
+      window.URL.revokeObjectURL(blobUrl);
+    }, 1000);
+  },
+
+
+  // =========================================================
+  // GET PLAYER PHOTO AS BLOB URL
+  // =========================================================
+
+  getPhotoUrl: async (playerId) => {
+    const blob = await PlayerService.getDocument(
+      playerId,
+      "photo"
+    );
+
+    return window.URL.createObjectURL(blob);
+  },
+
 };
 
 export default PlayerService;

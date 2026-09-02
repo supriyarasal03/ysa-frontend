@@ -86,6 +86,9 @@ const StaffForm = () => {
     email: "",
     password: "",
     confirmPassword: "",
+     bankName: "",
+  branchName: "",
+  accountHolderName: "",
     role: "",
     firstName: "",
     lastName: "",
@@ -93,7 +96,7 @@ const StaffForm = () => {
     dateOfBirth: "",
     gender: "",
     address: "",
-    joiningDate: "",
+ joiningDate: new Date().toISOString().split("T")[0],
     highestQualification: "",
     experienceYears: "",
     accountNumber: "",
@@ -104,6 +107,9 @@ const StaffForm = () => {
     degreeCertificate: null,
     resume: null,
   });
+
+
+
 
   const today = new Date().toISOString().split("T")[0];
   const yesterday = new Date(Date.now() - 86400000)
@@ -129,9 +135,30 @@ const StaffForm = () => {
     ) : null;
 
   const fieldClass = (name, extra = "") =>
-    `w-full h-11 px-4 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 ${
-      errors[name] ? "border-red-500" : "border-slate-200"
-    } ${extra}`;
+  `w-full h-11 px-4 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+    errors[name] ? "border-red-500" : "border-slate-200"
+  } ${extra}`;
+
+const focusField = (name) => {
+  if (!name) return;
+
+  const element = document.querySelector(`[name="${name}"]`);
+
+  if (element) {
+    element.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+
+    setTimeout(() => {
+      element.focus();
+    }, 300);
+  }
+};
+
+
+
+
 
   const validateFile = (file, field) => {
     if (!file) return "";
@@ -256,11 +283,31 @@ const StaffForm = () => {
           return "Experience must be between 0 and 50 years.";
         return "";
 
-      case "accountNumber":
-        if (!v) return "Account number is required.";
-        if (!/^\d{9,18}$/.test(v))
-          return "Account number must contain 9 to 18 digits.";
-        return "";
+      case "bankName":
+  if (!v) return "Bank name is required.";
+  if (v.length < 2 || v.length > 100)
+    return "Bank name must be between 2 and 100 characters.";
+  return "";
+
+case "branchName":
+  if (!v) return "Branch name is required.";
+  if (v.length < 2 || v.length > 100)
+    return "Branch name must be between 2 and 100 characters.";
+  return "";
+
+case "accountHolderName":
+  if (!v) return "Account holder name is required.";
+  if (!/^[A-Za-z ]+$/.test(v))
+    return "Account holder name can contain only letters and spaces.";
+  if (v.length < 2 || v.length > 100)
+    return "Account holder name must be between 2 and 100 characters.";
+  return "";
+
+case "accountNumber":
+  if (!v) return "Account number is required.";
+  if (!/^\d{9,18}$/.test(v))
+    return "Account number must contain 9 to 18 digits.";
+  return "";
 
       case "ifscCode":
         if (!v) return "IFSC code is required.";
@@ -291,9 +338,12 @@ const fields = [
   "address",
   ...(!isEdit ? ["joiningDate"] : []),
   "highestQualification",
-  "experienceYears",
-  "accountNumber",
-  "ifscCode",
+"experienceYears",
+"bankName",
+"branchName",
+"accountHolderName",
+"accountNumber",
+"ifscCode",
 ];
     fields.forEach((field) => {
       const message = validateField(field);
@@ -308,15 +358,21 @@ const fields = [
         next.aadhaarBack = "Aadhaar back document is required.";
       if (!formData.panCard)
         next.panCard = "PAN card document is required.";
-      if (!formData.degreeCertificate)
-        next.degreeCertificate = "Degree certificate is required.";
-      if (!formData.resume) next.resume = "Resume is required.";
+
+if (!["RECEPTIONIST", "CLEANING_STAFF"].includes(formData.role)) {
+  if (!formData.degreeCertificate)
+    next.degreeCertificate = "Degree certificate is required.";
+
+  if (!formData.resume)
+    next.resume = "Resume is required.";
+}
+
     }
 
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  };
 
+setErrors(next);
+return next;
+  };
   // ---------------------------------------------------------------------------
   // Load existing staff
   // ---------------------------------------------------------------------------
@@ -358,8 +414,12 @@ const fields = [
             : "",
           highestQualification: staff.highestQualification || "",
           experienceYears: staff.experienceYears ?? "",
-          accountNumber: staff.accountNumber || "",
-          ifscCode: staff.ifscCode || "",
+
+         bankName: staff.bankName || "",
+branchName: staff.branchName || "",
+accountHolderName: staff.accountHolderName || "",
+accountNumber: staff.accountNumber || "",
+ifscCode: staff.ifscCode || "",
           aadhaarFront: null,
           aadhaarBack: null,
           panCard: null,
@@ -557,9 +617,40 @@ const fields = [
     const { name } = event.target;
     let { value } = event.target;
 
-    if (name === "firstName" || name === "lastName") {
-      value = value.replace(/[^A-Za-z ]/g, "");
-    }
+
+    if (
+  name === "role" &&
+  ["RECEPTIONIST", "CLEANING_STAFF"].includes(value)
+) {
+  setFormData((prev) => ({
+    ...prev,
+    degreeCertificate: null,
+    resume: null,
+  }));
+
+  setDocPreviews((prev) => ({
+    ...prev,
+    degreeCertificate: null,
+    resume: null,
+  }));
+
+  setErrors((prev) => {
+    const next = { ...prev };
+    delete next.degreeCertificate;
+    delete next.resume;
+    return next;
+  });
+}
+
+
+if (
+  name === "firstName" ||
+  name === "lastName" ||
+  name === "accountHolderName"
+) {
+  value = value.replace(/[^A-Za-z ]/g, "");
+}
+
 
     if (name === "mobileNumber") {
       value = value.replace(/\D/g, "").slice(0, 10);
@@ -645,13 +736,23 @@ const fields = [
       fieldErrors.confirmPassword = message;
     }
 
-    if (Object.keys(fieldErrors).length > 0) {
-      setErrors((prev) => ({
-        ...prev,
-        ...fieldErrors,
-        general: "",
-      }));
-    } else {
+
+      if (Object.keys(fieldErrors).length > 0) {
+  setErrors((prev) => ({
+    ...prev,
+    ...fieldErrors,
+    general: "",
+  }));
+
+  const firstError = Object.keys(fieldErrors)[0];
+
+  setTimeout(() => {
+    focusField(firstError);
+  }, 100);
+} else {
+
+
+
       setErrors((prev) => ({
         ...prev,
         general:
@@ -671,15 +772,18 @@ const fields = [
     setSuccessMessage("");
     setErrors({});
 
-    const valid = validate();
-    if (!valid) {
-      // Move focus to the first invalid field.
-      const firstError = Object.keys(errors)[0];
-      if (firstError && document.querySelector(`[name="${firstError}"]`)) {
-        document.querySelector(`[name="${firstError}"]`).focus();
-      }
-      return;
-    }
+
+const validationErrors = validate();
+
+if (Object.keys(validationErrors).length > 0) {
+  const firstError = Object.keys(validationErrors)[0];
+
+  focusField(firstError);
+
+  return;
+}
+
+
 
     setLoading(true);
 
@@ -722,8 +826,13 @@ fd.append(
 
 
       fd.append("experienceYears", formData.experienceYears);
-      fd.append("accountNumber", formData.accountNumber);
-      fd.append("ifscCode", formData.ifscCode.toUpperCase());
+
+
+   fd.append("bankName", formData.bankName.trim());
+fd.append("branchName", formData.branchName.trim());
+fd.append("accountHolderName", formData.accountHolderName.trim());
+fd.append("accountNumber", formData.accountNumber);
+fd.append("ifscCode", formData.ifscCode.toUpperCase());
 
       if (photoFile) {
         fd.append("photo", photoFile);
@@ -1121,27 +1230,15 @@ setTimeout(() => {
                 </h2>
               </div>
 
+            
+            
+            
               <div className="p-5 md:p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
-                    Staff Role <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="role"
-                    value={formData.role}
-                    onChange={handleChange}
-                    className={fieldClass("role", "bg-white")}
-                  >
-                    <option value="">Select Role</option>
-                    {ROLE_OPTIONS.map((role) => (
-                      <option key={role.value} value={role.value}>
-                        {role.label}
-                      </option>
-                    ))}
-                  </select>
-                  <ErrorText name="role" />
-                </div>
+               
+
+
+
 
                 <div>
                   <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
@@ -1220,7 +1317,16 @@ setTimeout(() => {
 
               <div className="p-5 md:p-6">
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                  {DOCUMENTS.map((doc) => (
+
+                {DOCUMENTS
+  .filter(
+    (doc) =>
+      !["RECEPTIONIST", "CLEANING_STAFF"].includes(formData.role) ||
+      !["degreeCertificate", "resume"].includes(doc.key)
+  )
+  .map((doc) => (
+
+
                     <div
                       key={doc.key}
                       className={`relative flex items-center justify-between gap-4 p-4 border rounded-xl bg-white ${
@@ -1306,40 +1412,113 @@ setTimeout(() => {
                 </h2>
               </div>
 
-              <div className="p-5 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
-                    Account Number <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    name="accountNumber"
-                    value={formData.accountNumber}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    inputMode="numeric"
-                    maxLength={18}
-                    placeholder="9-18 digits"
-                    className={fieldClass("accountNumber", "bg-white font-mono")}
-                  />
-                  <ErrorText name="accountNumber" />
-                </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
-                    IFSC Code <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    name="ifscCode"
-                    value={formData.ifscCode}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    maxLength={11}
-                    placeholder="e.g. SBIN0001234"
-                    className={fieldClass("ifscCode", "bg-white uppercase")}
-                  />
-                  <ErrorText name="ifscCode" />
-                </div>
-              </div>
+              <div className="p-5 md:p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+
+  {/* Bank Name */}
+  <div>
+    <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
+      Bank Name <span className="text-red-500">*</span>
+    </label>
+
+    <input
+      type="text"
+      name="bankName"
+      value={formData.bankName}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      maxLength={100}
+      placeholder="e.g. State Bank of India"
+      className={fieldClass("bankName", "bg-white")}
+    />
+
+    <ErrorText name="bankName" />
+  </div>
+
+  {/* Branch Name */}
+  <div>
+    <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
+      Branch Name <span className="text-red-500">*</span>
+    </label>
+
+    <input
+      type="text"
+      name="branchName"
+      value={formData.branchName}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      maxLength={100}
+      placeholder="e.g. Pune Main Branch"
+      className={fieldClass("branchName", "bg-white")}
+    />
+
+    <ErrorText name="branchName" />
+  </div>
+
+  {/* Account Holder Name */}
+  <div>
+    <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
+      Account Holder Name <span className="text-red-500">*</span>
+    </label>
+
+    <input
+      type="text"
+      name="accountHolderName"
+      value={formData.accountHolderName}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      maxLength={100}
+      placeholder="e.g. Sunita Sharma"
+      className={fieldClass("accountHolderName", "bg-white")}
+    />
+
+    <ErrorText name="accountHolderName" />
+  </div>
+
+  {/* Account Number */}
+  <div>
+    <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
+      Account Number <span className="text-red-500">*</span>
+    </label>
+
+    <input
+      name="accountNumber"
+      value={formData.accountNumber}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      inputMode="numeric"
+      maxLength={18}
+      placeholder="9-18 digits"
+      className={fieldClass("accountNumber", "bg-white font-mono")}
+    />
+
+    <ErrorText name="accountNumber" />
+  </div>
+
+  {/* IFSC Code */}
+  <div>
+    <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
+      IFSC Code <span className="text-red-500">*</span>
+    </label>
+
+    <input
+      name="ifscCode"
+      value={formData.ifscCode}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      maxLength={11}
+      placeholder="e.g. SBIN0001234"
+      className={fieldClass("ifscCode", "bg-white uppercase")}
+    />
+
+    <ErrorText name="ifscCode" />
+  </div>
+
+</div>
+
+
+
+
             </section>
 
             {/* ============================================================
