@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import {
   LayoutDashboard,
-  CalendarDays,
+  CalendarCheck2,
+  ClipboardCheck,
+  History,
+  LogOut,
   Menu,
   X,
-  LogOut,
-  UserRound,
-  Clock3,
+  Clock,
 } from "lucide-react";
 import {
   NavLink,
@@ -31,9 +32,6 @@ const CoachLayout = () => {
 
   const [attendanceLoading, setAttendanceLoading] =
     useState(true);
-
-  const [attendanceActionLoading, setAttendanceActionLoading] =
-    useState(false);
 
   const navigate = useNavigate();
 
@@ -82,25 +80,21 @@ const CoachLayout = () => {
 
 
   // ==========================================================
-  // LOAD TODAY'S ATTENDANCE
+  // LOAD TODAY ATTENDANCE
   // ==========================================================
 
   const loadTodayAttendance = async () => {
 
     try {
 
-      setAttendanceLoading(true);
-
       const response =
-        await CoachAttendanceService
-          .getTodayAttendance();
+        await CoachAttendanceService.getTodayAttendance();
 
-      /*
-       * IMPORTANT:
-       * Do not clear existing attendance if the API
-       * temporarily gives an empty/undefined response.
-       */
-      if (response) {
+      if (response?.data) {
+
+        setTodayAttendance(response.data);
+
+      } else {
 
         setTodayAttendance(response);
 
@@ -108,16 +102,14 @@ const CoachLayout = () => {
 
     } catch (error) {
 
-      if (
-        error?.response?.status === 404
-      ) {
+      if (error?.response?.status === 404) {
 
         setTodayAttendance(null);
 
       } else {
 
         console.error(
-          "Today's attendance loading error:",
+          "Attendance loading error:",
           error
         );
 
@@ -128,6 +120,7 @@ const CoachLayout = () => {
       setAttendanceLoading(false);
 
     }
+
   };
 
 
@@ -143,7 +136,7 @@ const CoachLayout = () => {
 
 
   // ==========================================================
-  // LISTEN FOR ATTENDANCE UPDATE
+  // ATTENDANCE UPDATE EVENT
   // ==========================================================
 
   useEffect(() => {
@@ -172,107 +165,57 @@ const CoachLayout = () => {
 
 
   // ==========================================================
-  // CHECK PUNCH IN
-  // ==========================================================
-
-  const hasPunchIn =
-    Boolean(
-      todayAttendance?.punchInTime
-    );
-
-
-  // ==========================================================
-  // CHECK PUNCH OUT
-  // ==========================================================
-
-  const hasPunchOut =
-    Boolean(
-      todayAttendance?.punchOutTime
-    );
-
-
-  // ==========================================================
-  // CHECK ATTENDANCE COMPLETED
-  // ==========================================================
-
-  const attendanceCompleted =
-    hasPunchIn &&
-    hasPunchOut;
-
-
-  // ==========================================================
   // PUNCH IN / PUNCH OUT
+  //
+  // Punch In -> Punch Out -> Hide
   // ==========================================================
 
   const handleAttendance = async () => {
 
-    /*
-     * Prevent duplicate request.
-     */
-    if (attendanceActionLoading) {
-      return;
-    }
-
-
-    /*
-     * Prevent Punch In after attendance is completed.
-     */
-    if (attendanceCompleted) {
-
-      alert(
-        "Today's attendance is already completed."
-      );
-
+    if (attendanceLoading) {
       return;
     }
 
 
     try {
 
-      setAttendanceActionLoading(true);
-
+      setAttendanceLoading(true);
 
       let response;
 
 
-      // ------------------------------------------------------
-      // PUNCH IN
-      // ------------------------------------------------------
-
-      if (!todayAttendance) {
-
-        response =
-          await CoachAttendanceService
-            .punchIn();
-
-      }
-
-
-      // ------------------------------------------------------
+      // ======================================================
       // PUNCH OUT
-      // ------------------------------------------------------
+      // ======================================================
 
-      else if (
-        hasPunchIn &&
-        !hasPunchOut
+      if (
+        todayAttendance?.punchInTime &&
+        !todayAttendance?.punchOutTime
       ) {
 
         response =
-          await CoachAttendanceService
-            .punchOut();
+          await CoachAttendanceService.punchOut();
 
       }
 
 
-      // ------------------------------------------------------
+      // ======================================================
+      // PUNCH IN
+      // ======================================================
+
+      else if (!todayAttendance) {
+
+        response =
+          await CoachAttendanceService.punchIn();
+
+      }
+
+
+      // ======================================================
       // ALREADY COMPLETED
-      // ------------------------------------------------------
+      // ======================================================
 
       else {
-
-        alert(
-          "Today's attendance is already completed."
-        );
 
         return;
 
@@ -280,26 +223,23 @@ const CoachLayout = () => {
 
 
       // ======================================================
-      // IMPORTANT FIX
-      // ======================================================
-      //
-      // Use the response returned from the punch API
-      // immediately instead of depending only on another GET.
-      //
-      // This prevents the button from incorrectly changing
-      // back to "Punch In".
+      // UPDATE SIDEBAR STATE IMMEDIATELY
       // ======================================================
 
-      if (response) {
+      if (response?.data) {
+
+        setTodayAttendance(response.data);
+
+      } else {
 
         setTodayAttendance(response);
 
       }
 
 
-      // ------------------------------------------------------
-      // UPDATE ATTENDANCE PAGE IMMEDIATELY
-      // ------------------------------------------------------
+      // ======================================================
+      // UPDATE ATTENDANCE PAGE
+      // ======================================================
 
       window.dispatchEvent(
         new Event("attendanceUpdated")
@@ -313,21 +253,44 @@ const CoachLayout = () => {
         error
       );
 
-      const message =
-        error?.response?.data?.message ||
-        "Attendance action failed.";
 
-      alert(message);
+      // ======================================================
+      // ACADEMY WI-FI / NETWORK ERROR
+      // ======================================================
+
+      if (
+        error?.code === "ERR_NETWORK" ||
+        error?.code === "ECONNABORTED" ||
+        error?.code === "ETIMEDOUT" ||
+        error?.message === "Network Error" ||
+        error?.response?.status === 403
+      ) {
+
+        window.alert(
+          "Attendance can only be marked from Academy Wi-Fi.\n\n" +
+          "Please connect to Academy Wi-Fi and try again."
+        );
+
+      } else {
+
+        const message =
+          error?.response?.data?.message ||
+          "Unable to mark attendance. Please try again.";
+
+        window.alert(message);
+
+      }
 
 
-      /*
-       * Refresh only after an error.
-       */
+      // ======================================================
+      // REFRESH STATE AFTER ERROR
+      // ======================================================
+
       await loadTodayAttendance();
 
     } finally {
 
-      setAttendanceActionLoading(false);
+      setAttendanceLoading(false);
 
     }
 
@@ -335,26 +298,52 @@ const CoachLayout = () => {
 
 
   // ==========================================================
-  // BUTTON TEXT
+  // ATTENDANCE BUTTON VISIBILITY
+  //
+  // Punch In -> Punch Out -> Hide after Punch Out
+  // ==========================================================
+
+  const shouldShowAttendanceButton = () => {
+
+    if (attendanceLoading) {
+      return true;
+    }
+
+
+    // --------------------------------------------------------
+    // No attendance yet
+    // --------------------------------------------------------
+
+    if (!todayAttendance) {
+      return true;
+    }
+
+
+    // --------------------------------------------------------
+    // Show only when punched in but not punched out
+    // --------------------------------------------------------
+
+    return !!(
+      todayAttendance.punchInTime &&
+      !todayAttendance.punchOutTime
+    );
+
+  };
+
+
+  // ==========================================================
+  // ATTENDANCE BUTTON TEXT
   // ==========================================================
 
   const getAttendanceButtonText = () => {
 
-    if (attendanceActionLoading) {
+    if (attendanceLoading) {
 
       return "Processing...";
 
     }
 
 
-    if (attendanceLoading) {
-
-      return "Punch In";
-
-    }
-
-
-    // No attendance today
     if (!todayAttendance) {
 
       return "Punch In";
@@ -362,10 +351,9 @@ const CoachLayout = () => {
     }
 
 
-    // Punched in but not punched out
     if (
-      hasPunchIn &&
-      !hasPunchOut
+      todayAttendance.punchInTime &&
+      !todayAttendance.punchOutTime
     ) {
 
       return "Punch Out";
@@ -373,67 +361,7 @@ const CoachLayout = () => {
     }
 
 
-    // Punched in + punched out
-    if (attendanceCompleted) {
-
-      return "Completed";
-
-    }
-
-
     return "Punch In";
-
-  };
-
-
-  // ==========================================================
-  // BUTTON STYLE
-  // ==========================================================
-
-  const getAttendanceButtonClass = () => {
-
-    // --------------------------------------------------------
-    // PUNCH OUT
-    // --------------------------------------------------------
-
-    if (
-      hasPunchIn &&
-      !hasPunchOut
-    ) {
-
-      return `
-        bg-amber-500
-        hover:bg-amber-600
-        text-white
-      `;
-
-    }
-
-
-    // --------------------------------------------------------
-    // COMPLETED
-    // --------------------------------------------------------
-
-    if (attendanceCompleted) {
-
-      return `
-        bg-slate-400
-        text-white
-        cursor-not-allowed
-      `;
-
-    }
-
-
-    // --------------------------------------------------------
-    // PUNCH IN
-    // --------------------------------------------------------
-
-    return `
-      bg-sky-500
-      hover:bg-sky-600
-      text-white
-    `;
 
   };
 
@@ -453,6 +381,7 @@ const CoachLayout = () => {
 
   // ==========================================================
   // NAVIGATION
+  // Same visual structure as Admin Layout
   // ==========================================================
 
   const navigationItems = [
@@ -466,7 +395,21 @@ const CoachLayout = () => {
     {
       name: "Attendance",
       path: "/coach-attendance",
-      icon: CalendarDays,
+      icon: CalendarCheck2,
+    },
+
+
+    {
+      name: "Player Attendance Management",
+      path: "/coach/player-attendance",
+      icon: ClipboardCheck,
+    },
+
+
+    {
+      name: "Player Attendance Records",
+      path: "/coach/Playee-attendance-history",
+      icon: History,
     },
 
   ];
@@ -478,333 +421,267 @@ const CoachLayout = () => {
 
   return (
 
-    <div className="flex h-screen bg-gray-50 font-sans">
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#f3f6fa",
+        display: "flex",
+      }}
+    >
 
-
-      {/* ======================================================
+      {/* =====================================================
           SIDEBAR
-      ======================================================= */}
+      ====================================================== */}
 
       <aside
-        className={`
-          fixed
-          inset-y-0
-          left-0
-          z-50
-          w-64
-          bg-[#0f172a]
-          text-white
-          transform
-          transition-transform
-          duration-300
-          ease-in-out
-
-          ${
-            sidebarOpen
-              ? "translate-x-0"
-              : "-translate-x-full"
-          }
-
-          lg:translate-x-0
-          lg:static
-          lg:inset-0
-
-          flex
-          flex-col
-        `}
+        style={{
+          width: sidebarOpen ? "270px" : "80px",
+          background: "#0d172c",
+          color: "#fff",
+          minHeight: "100vh",
+          transition: "width 0.2s ease",
+          display: "flex",
+          flexDirection: "column",
+          position: "fixed",
+          left: 0,
+          top: 0,
+          bottom: 0,
+          zIndex: 1000,
+        }}
       >
-
 
         {/* ==================================================
             LOGO
         =================================================== */}
 
         <div
-          className="
-            flex
-            items-center
-            gap-3
-            px-6
-            py-5
-            border-b
-            border-slate-700/50
-          "
+          style={{
+            padding: "28px 24px",
+            display: "flex",
+            alignItems: "center",
+            gap: "14px",
+            borderBottom: "1px solid rgba(255,255,255,0.08)",
+          }}
         >
 
           <div
-            className="
-              w-10
-              h-10
-              rounded-xl
-              bg-blue-600
-              flex
-              items-center
-              justify-center
-              font-bold
-              text-lg
-              shrink-0
-            "
+            style={{
+              width: "48px",
+              height: "48px",
+              borderRadius: "12px",
+              background: "#2864e8",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "24px",
+              fontWeight: "700",
+              flexShrink: 0,
+            }}
           >
-
             Y
-
           </div>
 
 
-          <div>
+          {sidebarOpen && (
 
-            <h1
-              className="
-                text-base
-                font-semibold
-                tracking-wide
-              "
-            >
-              Yashree Sports
-            </h1>
+            <div>
 
-            <p
-              className="
-                text-xs
-                text-slate-400
-                mt-1
-              "
-            >
-              Coach Panel
-            </p>
+              <div
+                style={{
+                  fontSize: "18px",
+                  fontWeight: "600",
+                }}
+              >
+                Yashashree Sports
+              </div>
 
-          </div>
+              <div
+                style={{
+                  fontSize: "13px",
+                  color: "#8ca1c0",
+                  marginTop: "4px",
+                }}
+              >
+                {username || "Coach Panel"}
+              </div>
+
+            </div>
+
+          )}
 
         </div>
 
 
         {/* ==================================================
-            PUNCH BUTTON
+            ATTENDANCE BUTTON
+
+            Punch In
+                ↓
+            Punch Out
+                ↓
+            Hidden
         =================================================== */}
 
-        <div
-          className="
-            px-5
-            py-6
-          "
-        >
+        {sidebarOpen &&
+          shouldShowAttendanceButton() && (
 
-          <button
-            type="button"
-            onClick={handleAttendance}
-            disabled={
-              attendanceActionLoading ||
-              attendanceCompleted
-            }
-            className={`
-              w-full
-              rounded-xl
-              py-3
-              px-4
-              flex
-              items-center
-              justify-center
-              gap-2
-              text-sm
-              font-semibold
-              transition
-
-              ${getAttendanceButtonClass()}
-            `}
+          <div
+            style={{
+              padding: "18px 16px 0",
+            }}
           >
 
-            <Clock3
-              className="w-5 h-5"
-            />
+            <button
+              type="button"
+              onClick={handleAttendance}
+              disabled={attendanceLoading}
+              style={{
+                width: "60%",
+                border: "none",
+                borderRadius: "10px",
+                padding: "12px 14px",
+                background: "#1d2a40",
+                color: "#fff",
+                cursor: attendanceLoading
+                  ? "not-allowed"
+                  : "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "10px",
+                fontSize: "15px",
+                fontWeight: "600",
+                opacity: attendanceLoading
+                  ? 0.7
+                  : 1,
+              }}
+            >
 
-            {getAttendanceButtonText()}
+              <Clock size={19} />
 
-          </button>
+              {getAttendanceButtonText()}
 
-        </div>
+            </button>
+
+          </div>
+
+        )}
 
 
         {/* ==================================================
-            NAVIGATION
+            SIDEBAR MENU
         =================================================== */}
 
         <nav
-          className="
-            flex-1
-            px-4
-          "
+          style={{
+            padding: "24px 16px",
+            flex: 1,
+          }}
         >
 
           <div
-            className="
-              px-5
-              mb-3
-              text-xs
-              font-medium
-              text-slate-500
-              uppercase
-            "
+            style={{
+              color: "#7184a3",
+              fontSize: "12px",
+              marginBottom: "14px",
+              paddingLeft: sidebarOpen
+                ? "20px"
+                : "0",
+              textAlign: sidebarOpen
+                ? "left"
+                : "center",
+            }}
           >
-            Overview
+
+            {sidebarOpen ? "OVERVIEW" : "•••"}
+
           </div>
 
 
-          {navigationItems.map(
-            (item) => {
+          {navigationItems.map((item) => {
 
-              const Icon =
-                item.icon;
+            const Icon = item.icon;
 
-              return (
+            return (
 
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={({
-                    isActive,
-                  }) => `
-                    flex
-                    items-center
-                    gap-3
-                    px-4
-                    py-3
-                    mb-1
-                    rounded-xl
-                    text-sm
-                    font-medium
-                    transition
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.path === "/coach"}
+                style={({ isActive }) => ({
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: sidebarOpen
+                    ? "flex-start"
+                    : "center",
+                  gap: "14px",
+                  padding: "14px 18px",
+                  marginBottom: "7px",
+                  borderRadius: "10px",
+                  textDecoration: "none",
+                  color: isActive
+                    ? "#fff"
+                    : "#c4d0e2",
+                  background: isActive
+                    ? "#2864e8"
+                    : "transparent",
+                  fontSize: "15px",
+                  fontWeight: isActive
+                    ? "600"
+                    : "500",
+                })}
+              >
 
-                    ${
-                      isActive
-                        ? `
-                          bg-blue-600
-                          text-white
-                        `
-                        : `
-                          text-slate-300
-                          hover:bg-slate-800
-                          hover:text-white
-                        `
-                    }
-                  `}
-                >
+                <Icon size={21} />
 
-                  <Icon
-                    className="w-5 h-5"
-                  />
+                {sidebarOpen && item.name}
 
-                  {item.name}
+              </NavLink>
 
-                </NavLink>
+            );
 
-              );
-
-            }
-          )}
+          })}
 
         </nav>
 
 
         {/* ==================================================
-            USER SECTION
+            LOGOUT
         =================================================== */}
 
         <div
-          className="
-            border-t
-            border-slate-700/50
-            px-5
-            py-5
-          "
+          style={{
+            padding: "18px 16px 24px",
+            borderTop:
+              "1px solid rgba(255,255,255,0.08)",
+          }}
         >
-
-          <div
-            className="
-              flex
-              items-center
-              gap-3
-              mb-4
-            "
-          >
-
-            <div
-              className="
-                w-11
-                h-11
-                rounded-full
-                bg-blue-600
-                flex
-                items-center
-                justify-center
-                shrink-0
-              "
-            >
-
-              <UserRound
-                className="w-5 h-5"
-              />
-
-            </div>
-
-
-            <div
-              className="
-                min-w-0
-              "
-            >
-
-              <p
-                className="
-                  text-sm
-                  font-semibold
-                  truncate
-                "
-              >
-                {username}
-              </p>
-
-              <p
-                className="
-                  text-xs
-                  text-slate-400
-                  mt-1
-                "
-              >
-                Coach
-              </p>
-
-            </div>
-
-          </div>
-
-
-          {/* LOGOUT */}
 
           <button
             type="button"
             onClick={handleLogout}
-            className="
-              w-full
-              flex
-              items-center
-              justify-center
-              gap-2
-              rounded-xl
-              bg-slate-800
-              hover:bg-slate-700
-              text-white
-              py-3
-              text-sm
-              font-medium
-              transition
-            "
+            style={{
+              width: "100%",
+              border: "none",
+              borderRadius: "10px",
+              padding: "14px",
+              background: "#1d2a40",
+              color: "#fff",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: sidebarOpen
+                ? "flex-start"
+                : "center",
+              gap: "12px",
+              fontSize: "15px",
+              fontWeight: "500",
+            }}
           >
 
-            <LogOut
-              className="w-5 h-5"
-            />
+            <LogOut size={20} />
 
-            Logout
+            {sidebarOpen && "Logout"}
 
           </button>
 
@@ -813,63 +690,68 @@ const CoachLayout = () => {
       </aside>
 
 
-      {/* ======================================================
+      {/* =====================================================
           MAIN AREA
-      ======================================================= */}
+      ====================================================== */}
 
-      <div
-        className="
-          flex-1
-          min-w-0
-          flex
-          flex-col
-        "
+      <main
+        style={{
+          marginLeft: sidebarOpen
+            ? "270px"
+            : "80px",
+          width: "100%",
+          minHeight: "100vh",
+          transition: "margin-left 0.2s ease",
+        }}
       >
-
 
         {/* ==================================================
             HEADER
         =================================================== */}
 
         <header
-          className="
-            h-24
-            bg-white
-            border-b
-            border-slate-200
-            flex
-            items-center
-            px-7
-            shrink-0
-          "
+          style={{
+            height: "82px",
+            background: "#fff",
+            borderBottom: "1px solid #e8edf3",
+            display: "flex",
+            alignItems: "center",
+            padding: "0 30px",
+            boxSizing: "border-box",
+            gap: "18px",
+          }}
         >
 
           <button
             type="button"
             onClick={() =>
               setSidebarOpen(
-                (previous) =>
-                  !previous
+                (previous) => !previous
               )
             }
-            className="
-              mr-5
-              p-1
-              text-slate-500
-              hover:text-slate-800
-            "
+            style={{
+              border: "none",
+              background: "transparent",
+              cursor: "pointer",
+              padding: "8px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
 
             {sidebarOpen ? (
 
               <X
-                className="w-6 h-6"
+                size={23}
+                color="#596b84"
               />
 
             ) : (
 
               <Menu
-                className="w-6 h-6"
+                size={23}
+                color="#596b84"
               />
 
             )}
@@ -880,70 +762,25 @@ const CoachLayout = () => {
           <div>
 
             <h2
-              className="
-                text-xl
-                font-semibold
-                text-slate-900
-              "
+              style={{
+                margin: 0,
+                color: "#07152f",
+                fontSize: "30px",
+                fontWeight: "600",
+              }}
             >
-              Coach Dashboard
+              Welcome, {username || "Coach"}
             </h2>
 
             <p
-              className="
-                text-sm
-                text-slate-500
-                mt-1
-              "
+              style={{
+                margin: "5px 0 0",
+                color: "#71849e",
+                fontSize: "14px",
+              }}
             >
-              Manage coaching and daily operations
+              Manage your coaching and daily operations
             </p>
-
-          </div>
-
-
-          {/* NOTIFICATION */}
-
-          <div
-            className="
-              ml-auto
-              relative
-              text-slate-600
-            "
-          >
-
-            <div
-              className="
-                w-10
-                h-10
-                rounded-full
-                flex
-                items-center
-                justify-center
-              "
-            >
-
-              <span
-                className="
-                  text-2xl
-                "
-              >
-                ♧
-              </span>
-
-            </div>
-
-            <span
-              className="
-                absolute
-                top-1
-                right-1
-                w-2
-                h-2
-                rounded-full
-                bg-red-500
-              "
-            />
 
           </div>
 
@@ -954,18 +791,9 @@ const CoachLayout = () => {
             PAGE CONTENT
         =================================================== */}
 
-        <main
-          className="
-            flex-1
-            overflow-y-auto
-          "
-        >
+        <Outlet />
 
-          <Outlet />
-
-        </main>
-
-      </div>
+      </main>
 
     </div>
 

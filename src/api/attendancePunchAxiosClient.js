@@ -8,19 +8,14 @@ const attendancePunchAxiosClient = axios.create({
   // IS NOT REACHABLE
   // ==========================================================
 
-  timeout: 5000,
+  timeout: 2000,
 });
 
 attendancePunchAxiosClient.interceptors.request.use((config) => {
-
   const token = localStorage.getItem("token");
 
-  if (
-    token &&
-    !config.url?.startsWith("/auth")
-  ) {
-    config.headers.Authorization =
-      `Bearer ${token}`;
+  if (token && !config.url?.startsWith("/auth")) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
 
   return config;

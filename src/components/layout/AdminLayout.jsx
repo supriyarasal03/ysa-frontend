@@ -168,14 +168,55 @@ const AdminLayout = () => {
         new Event("attendanceUpdated")
       );
 
+
+
+
+
+
+
+
+
+
+
     } catch (error) {
 
-      console.error(
-        "Attendance action error:",
-        error
-      );
+  if (
+    error?.code === "ERR_NETWORK" ||
+    error?.code === "ECONNABORTED" ||
+    error?.code === "ETIMEDOUT" ||
+    error?.message === "Network Error"
+  ) {
 
-      await loadTodayAttendance();
+    window.alert(
+      "Please connect to Academy Wi-Fi."
+    );
+
+  } else if (error?.response?.status === 403) {
+
+    window.alert(
+      "Attendance can only be marked from Academy Wi-Fi."
+    );
+
+  } else {
+
+    console.error(
+      "Attendance action error:",
+      error
+    );
+
+    window.alert(
+      error?.response?.data?.message ||
+      "Unable to mark attendance. Please try again."
+    );
+
+  }
+
+
+
+
+
+
+
 
     } finally {
 
@@ -367,7 +408,7 @@ const AdminLayout = () => {
                 border: "none",
                 borderRadius: "10px",
                 padding: "12px 14px",
-               background: "#1d2a40",
+                background: "#1d2a40",
                 color: "#fff",
 
 

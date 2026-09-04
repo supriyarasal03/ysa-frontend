@@ -1,4 +1,5 @@
-import axiosClient from "../../api/axiosClient";
+import attendanceAxiosClient from "../../api/attendanceAxiosClient";
+import attendancePunchAxiosClient from "../../api/attendancePunchAxiosClient";
 
 const CoachAttendanceService = {
 
@@ -8,7 +9,7 @@ const CoachAttendanceService = {
 
   getTodayAttendance: async () => {
 
-    const res = await axiosClient.get(
+    const res = await attendanceAxiosClient.get(
       "/employee-attendance/today"
     );
 
@@ -22,7 +23,7 @@ const CoachAttendanceService = {
 
   getMyAttendance: async () => {
 
-    const res = await axiosClient.get(
+    const res = await attendanceAxiosClient.get(
       "/employee-attendance/my"
     );
 
@@ -36,7 +37,7 @@ const CoachAttendanceService = {
 
   punchIn: async () => {
 
-    const res = await axiosClient.post(
+    const res = await attendancePunchAxiosClient.post(
       "/employee-attendance/punch-in"
     );
 
@@ -50,7 +51,7 @@ const CoachAttendanceService = {
 
   punchOut: async () => {
 
-    const res = await axiosClient.post(
+    const res = await attendancePunchAxiosClient.post(
       "/employee-attendance/punch-out"
     );
 

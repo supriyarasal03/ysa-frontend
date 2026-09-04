@@ -1,5 +1,9 @@
 import axiosClient from "../../api/axiosClient";
 
+import attendancePunchAxiosClient
+  from "../../api/attendancePunchAxiosClient";
+
+
 const InnventoryManagerService = {
 
   // ==========================================================
@@ -7,6 +11,7 @@ const InnventoryManagerService = {
   // ==========================================================
 
   getTodayAttendance: async () => {
+
     const res = await axiosClient.get(
       "/employee-attendance/today"
     );
@@ -20,6 +25,7 @@ const InnventoryManagerService = {
   // ==========================================================
 
   getMyAttendance: async () => {
+
     const res = await axiosClient.get(
       "/employee-attendance/my"
     );
@@ -30,12 +36,15 @@ const InnventoryManagerService = {
 
   // ==========================================================
   // PUNCH IN
+  // ACADEMY WI-FI CLIENT
   // ==========================================================
 
   punchIn: async () => {
-    const res = await axiosClient.post(
-      "/employee-attendance/punch-in"
-    );
+
+    const res =
+      await attendancePunchAxiosClient.post(
+        "/employee-attendance/punch-in"
+      );
 
     return res.data;
   },
@@ -43,16 +52,20 @@ const InnventoryManagerService = {
 
   // ==========================================================
   // PUNCH OUT
+  // ACADEMY WI-FI CLIENT
   // ==========================================================
 
   punchOut: async () => {
-    const res = await axiosClient.post(
-      "/employee-attendance/punch-out"
-    );
+
+    const res =
+      await attendancePunchAxiosClient.post(
+        "/employee-attendance/punch-out"
+      );
 
     return res.data;
   },
 
 };
+
 
 export default InnventoryManagerService;

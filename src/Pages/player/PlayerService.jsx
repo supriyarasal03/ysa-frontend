@@ -90,6 +90,55 @@ const PlayerService = {
   },
 
 
+
+
+
+    // =========================================================
+  // EDIT PLAYER - GET AVAILABLE BATCHES
+  // =========================================================
+  // Returns only batches that are valid for the player's
+  // current sport and available capacity.
+  // The current batch can also be returned when it is full.
+  // =========================================================
+
+  getAvailableBatchesForChange: async (playerId) => {
+    const res = await axiosClient.get(
+      `/player-batch-change/${playerId}/available-batches`
+    );
+
+    return res.data;
+  },
+
+
+
+
+
+  // =========================================================
+  // EDIT PLAYER - CHANGE BATCH / PAYMENT PLAN
+  // =========================================================
+  // Changes only the enrollment batch/payment plan.
+  // Existing player information and payment history are preserved.
+  // =========================================================
+
+  changeBatch: async (playerId, data) => {
+
+
+
+
+    
+    const res = await axiosClient.put(
+      `/player-batch-change/${playerId}`,
+      data
+    );
+
+    return res.data;
+  },
+
+
+
+
+
+
   // =========================================================
   // ACTIVATE PLAYER
   // =========================================================
@@ -239,5 +288,14 @@ const PlayerService = {
   },
 
 };
+
+
+
+
+
+
+
+
+
 
 export default PlayerService;

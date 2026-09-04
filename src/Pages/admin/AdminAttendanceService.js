@@ -1,4 +1,5 @@
 import attendanceAxiosClient from "../../api/attendanceAxiosClient";
+import attendancePunchAxiosClient from "../../api/attendancePunchAxiosClient";
 
 const AdminAttendanceService = {
 
@@ -33,7 +34,7 @@ const AdminAttendanceService = {
   // ==========================================================
 
   punchIn: async () => {
-    const res = await attendanceAxiosClient.post(
+    const res = await attendancePunchAxiosClient.post(
       "/employee-attendance/punch-in"
     );
 
@@ -46,7 +47,7 @@ const AdminAttendanceService = {
   // ==========================================================
 
   punchOut: async () => {
-    const res = await attendanceAxiosClient.post(
+    const res = await attendancePunchAxiosClient.post(
       "/employee-attendance/punch-out"
     );
 

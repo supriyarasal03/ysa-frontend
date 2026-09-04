@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Package,
   CalendarDays,
+  History,
   LogOut,
   Menu,
   Bell,
@@ -31,13 +32,111 @@ const InventoryManagerLayout = () => {
   const [attendanceActionLoading, setAttendanceActionLoading] =
     useState(false);
 
-  const [attendanceMessage, setAttendanceMessage] =
-    useState("");
-
-  const [attendanceError, setAttendanceError] =
-    useState("");
-
   const navigate = useNavigate();
+
+
+  // ==========================================================
+  // GET LOGGED-IN USER DETAILS
+  // ==========================================================
+
+  const getUserDetails = () => {
+
+    let username =
+      localStorage.getItem("username") ||
+      localStorage.getItem("userName") ||
+      "";
+
+    let email =
+      localStorage.getItem("email") ||
+      "";
+
+    /*
+     * If username/email are not stored separately,
+     * try to read them from the JWT payload.
+     */
+
+    const token = localStorage.getItem("token");
+
+    if (token) {
+
+      try {
+
+        const payload =
+          JSON.parse(
+            atob(
+              token
+                .split(".")[1]
+                .replace(/-/g, "+")
+                .replace(/_/g, "/")
+            )
+          );
+
+        username =
+          username ||
+          payload.username ||
+          payload.sub ||
+          "";
+
+        email =
+          email ||
+          payload.email ||
+          "";
+
+      } catch (error) {
+
+        // Ignore invalid/unreadable token payload.
+
+      }
+
+    }
+
+    return {
+      username,
+      email,
+    };
+
+  };
+
+
+  const userDetails = getUserDetails();
+
+  const displayName =
+    userDetails.username || "Inventory Manager";
+
+  const displayEmail =
+    userDetails.email || "";
+
+
+  const getInitials = (name) => {
+
+    if (!name) {
+      return "IM";
+    }
+
+    const words =
+      name
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+
+    if (words.length === 1) {
+
+      return words[0]
+        .substring(0, 2)
+        .toUpperCase();
+
+    }
+
+    return (
+      words[0][0] +
+      words[words.length - 1][0]
+    ).toUpperCase();
+
+  };
+
+
+  const userInitials =
+    getInitials(displayName);
 
 
   // ==========================================================
@@ -56,10 +155,8 @@ const InventoryManagerLayout = () => {
     } catch (error) {
 
       /*
-       * If there is no attendance record for today,
-       * backend may return an error.
-       *
-       * Do not show that as a layout error.
+       * No record for today should not break
+       * the dashboard layout.
        */
 
       setTodayAttendance(null);
@@ -90,8 +187,6 @@ const InventoryManagerLayout = () => {
       return;
     }
 
-    setAttendanceMessage("");
-    setAttendanceError("");
     setAttendanceActionLoading(true);
 
     try {
@@ -101,15 +196,10 @@ const InventoryManagerLayout = () => {
 
       setTodayAttendance(response);
 
-      setAttendanceMessage(
+      window.alert(
         response?.message ||
         "Punch in successful."
       );
-
-      /*
-       * Notify attendance page so that it can
-       * refresh its records without browser reload.
-       */
 
       window.dispatchEvent(
         new Event("attendance-updated")
@@ -117,22 +207,38 @@ const InventoryManagerLayout = () => {
 
     } catch (error) {
 
-      console.error(
-        "Punch in error:",
-        error
-      );
-
-      const message =
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        "Unable to punch in.";
-
-      setAttendanceError(message);
-
       /*
-       * Refresh today's attendance because the
-       * backend may already have a punch-in record.
+       * Academy Wi-Fi / network errors are expected
+       * when attendance is attempted outside the academy.
        */
+
+      if (
+        error?.code === "ERR_NETWORK" ||
+        error?.code === "ECONNABORTED" ||
+        error?.code === "ETIMEDOUT" ||
+        error?.message === "Network Error"
+      ) {
+
+        window.alert(
+          "Please connect to Academy Wi-Fi."
+        );
+
+      } else if (error?.response?.status === 403) {
+
+        window.alert(
+          "Attendance can only be marked from Academy Wi-Fi."
+        );
+
+      } else {
+
+        const message =
+          error?.response?.data?.message ||
+          error?.response?.data?.error ||
+          "Unable to punch in.";
+
+        window.alert(message);
+
+      }
 
       await loadTodayAttendance();
 
@@ -155,8 +261,6 @@ const InventoryManagerLayout = () => {
       return;
     }
 
-    setAttendanceMessage("");
-    setAttendanceError("");
     setAttendanceActionLoading(true);
 
     try {
@@ -166,15 +270,10 @@ const InventoryManagerLayout = () => {
 
       setTodayAttendance(response);
 
-      setAttendanceMessage(
+      window.alert(
         response?.message ||
         "Punch out successful."
       );
-
-      /*
-       * Notify attendance page so that the
-       * latest punch-out record appears immediately.
-       */
 
       window.dispatchEvent(
         new Event("attendance-updated")
@@ -182,17 +281,38 @@ const InventoryManagerLayout = () => {
 
     } catch (error) {
 
-      console.error(
-        "Punch out error:",
-        error
-      );
+      /*
+       * Academy Wi-Fi / network errors are expected
+       * when attendance is attempted outside the academy.
+       */
 
-      const message =
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        "Unable to punch out.";
+      if (
+        error?.code === "ERR_NETWORK" ||
+        error?.code === "ECONNABORTED" ||
+        error?.code === "ETIMEDOUT" ||
+        error?.message === "Network Error"
+      ) {
 
-      setAttendanceError(message);
+        window.alert(
+          "Please connect to Academy Wi-Fi."
+        );
+
+      } else if (error?.response?.status === 403) {
+
+        window.alert(
+          "Attendance can only be marked from Academy Wi-Fi."
+        );
+
+      } else {
+
+        const message =
+          error?.response?.data?.message ||
+          error?.response?.data?.error ||
+          "Unable to punch out.";
+
+        window.alert(message);
+
+      }
 
       await loadTodayAttendance();
 
@@ -206,28 +326,19 @@ const InventoryManagerLayout = () => {
 
 
   // ==========================================================
-  // DYNAMIC ATTENDANCE BUTTON
+  // DYNAMIC ATTENDANCE ACTION
   // ==========================================================
 
   const handleAttendanceAction = () => {
-
-    /*
-     * No attendance today
-     * -> Punch In
-     */
 
     if (!todayAttendance) {
 
       handlePunchIn();
 
       return;
+
     }
 
-
-    /*
-     * Punched in but not punched out
-     * -> Punch Out
-     */
 
     if (
       todayAttendance.punchInTime &&
@@ -237,20 +348,16 @@ const InventoryManagerLayout = () => {
       handlePunchOut();
 
       return;
+
     }
 
-
-    /*
-     * Already completed today
-     * -> Show message
-     */
 
     if (
       todayAttendance.punchInTime &&
       todayAttendance.punchOutTime
     ) {
 
-      setAttendanceError(
+      window.alert(
         "Attendance already completed for today."
       );
 
@@ -260,50 +367,20 @@ const InventoryManagerLayout = () => {
 
 
   // ==========================================================
-  // BUTTON TEXT
+  // ATTENDANCE BUTTON
   // ==========================================================
 
-  let attendanceButtonText = "Punch In";
+  const attendanceCompleted =
+    Boolean(
+      todayAttendance?.punchInTime &&
+      todayAttendance?.punchOutTime
+    );
 
-  let attendanceButtonClass =
-    "bg-sky-500 hover:bg-sky-600";
-
-
-  /*
-   * After Punch In
-   */
-
-  if (
+  const attendanceButtonText =
     todayAttendance?.punchInTime &&
     !todayAttendance?.punchOutTime
-  ) {
-
-    attendanceButtonText = "Punch Out";
-
-    attendanceButtonClass =
-      "bg-amber-500 hover:bg-amber-600";
-
-  }
-
-
-  /*
-   * After Punch Out
-   *
-   * Button becomes Punch In again.
-   */
-
-  if (
-    todayAttendance?.punchInTime &&
-    todayAttendance?.punchOutTime
-  ) {
-
-    attendanceButtonText = "Punch In";
-
-    attendanceButtonClass =
-      "bg-sky-500 hover:bg-sky-600";
-
-  }
-
+      ? "Punch Out"
+      : "Punch In";
 
   // ==========================================================
   // NAVIGATION ITEMS
@@ -328,7 +405,7 @@ const InventoryManagerLayout = () => {
     {
       name: "Inventory Transaction History",
       path: "/innventory/history",
-      icon: Package,
+      icon: History,
       end: false,
     },
 
@@ -350,6 +427,9 @@ const InventoryManagerLayout = () => {
 
     localStorage.removeItem("token");
     localStorage.removeItem("role");
+    localStorage.removeItem("username");
+    localStorage.removeItem("userName");
+    localStorage.removeItem("email");
 
     navigate("/login");
 
@@ -371,7 +451,7 @@ const InventoryManagerLayout = () => {
 
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 w-64
+          fixed inset-y-0 left-0 z-50 w-72
           bg-[#0f172a] text-white
           transform transition-transform duration-300 ease-in-out
           ${
@@ -385,14 +465,14 @@ const InventoryManagerLayout = () => {
 
 
         {/* ===================================================
-            LOGO
+            BRAND
         =================================================== */}
 
         <div className="flex items-center justify-between border-b border-slate-700/50 px-6 py-5">
 
           <div className="flex items-center gap-3">
 
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600 text-lg font-bold shadow-md">
 
               Y
 
@@ -405,15 +485,13 @@ const InventoryManagerLayout = () => {
               </h1>
 
               <p className="text-xs text-slate-400">
-                Inventory Manager
+                {displayName}
               </p>
 
             </div>
 
           </div>
 
-
-          {/* Mobile Close */}
 
           <button
             type="button"
@@ -434,64 +512,44 @@ const InventoryManagerLayout = () => {
             ATTENDANCE ACTION
         =================================================== */}
 
-        <div className="border-b border-slate-700/50 px-4 py-4">
+        {!attendanceCompleted && (
 
-          <button
-            type="button"
-            onClick={handleAttendanceAction}
-            disabled={attendanceActionLoading}
-            className={`
-              flex w-full items-center
-              justify-center gap-2
-              rounded-xl
-              py-2.5
-              text-sm font-semibold
-              text-white
-              shadow-md
-              transition-all
-              duration-200
-              disabled:cursor-not-allowed
-              disabled:opacity-60
-              ${attendanceButtonClass}
-            `}
-          >
+          <div className="border-b border-slate-700/50 px-4 py-4">
 
-            <Clock className="h-4 w-4" />
+            <button
+              type="button"
+              onClick={handleAttendanceAction}
+              disabled={attendanceActionLoading}
+              className="
+                flex w-full items-center
+                justify-center gap-2
+                rounded-xl
+                bg-slate-800
+                py-3
+                text-sm font-semibold
+                text-white
+                shadow-md
+                shadow-slate-900/30
+                transition-all
+                duration-200
+                hover:bg-slate-700
+                hover:shadow-lg
+                disabled:cursor-not-allowed
+                disabled:opacity-60
+              "
+            >
 
-            {attendanceActionLoading
-              ? "Processing..."
-              : attendanceButtonText}
+              <Clock className="h-5 w-5" />
 
-          </button>
+              {attendanceActionLoading
+                ? "Processing..."
+                : attendanceButtonText}
 
+            </button>
 
-          {/* Success Message */}
+          </div>
 
-          {attendanceMessage && (
-
-            <p className="mt-2 text-center text-xs text-emerald-400">
-
-              {attendanceMessage}
-
-            </p>
-
-          )}
-
-
-          {/* Error Message */}
-
-          {attendanceError && (
-
-            <p className="mt-2 text-center text-xs text-red-400">
-
-              {attendanceError}
-
-            </p>
-
-          )}
-
-        </div>
-
+        )}
 
         {/* ===================================================
             NAVIGATION
@@ -534,9 +592,11 @@ const InventoryManagerLayout = () => {
                 }
               >
 
-                <Icon className="h-5 w-5" />
+                <Icon className="h-5 w-5 shrink-0" />
 
-                {item.name}
+                <span>
+                  {item.name}
+                </span>
 
               </NavLink>
 
@@ -555,9 +615,9 @@ const InventoryManagerLayout = () => {
 
           <div className="mb-3 flex items-center gap-3">
 
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold">
 
-              IM
+              {userInitials}
 
             </div>
 
@@ -565,15 +625,19 @@ const InventoryManagerLayout = () => {
 
               <p className="truncate text-sm font-medium">
 
-                Inventory Manager
+                {displayName}
 
               </p>
 
-              <p className="truncate text-xs text-slate-400">
+              {displayEmail && (
 
-                inventory@yashree.com
+                <p className="truncate text-xs text-slate-400">
 
-              </p>
+                  {displayEmail}
+
+                </p>
+
+              )}
 
             </div>
 
@@ -621,8 +685,6 @@ const InventoryManagerLayout = () => {
 
           <div className="flex items-center gap-3">
 
-            {/* Mobile Menu */}
-
             <button
               type="button"
               onClick={() =>
@@ -662,6 +724,7 @@ const InventoryManagerLayout = () => {
             <button
               type="button"
               className="relative rounded-xl p-2 text-gray-600 hover:bg-gray-100"
+              aria-label="Notifications"
             >
 
               <Bell className="h-5 w-5" />

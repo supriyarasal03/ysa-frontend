@@ -71,6 +71,8 @@ import AdminAttendanceManagement from "./Pages/admin/AdminAttendanceManagment";
 import ReceptionistAttendanceManagmnet from "./Pages/receptionist/ReceptionistAttendanceManagmnet";
 import InnventoryManagerAttendance from "./Pages/innventoty-manager/InnventoryManagerAttendance";
 import CoachAttendanceManagement from "./Pages/coach/CoachAttendanceManagment";
+import StudentsAttendance from "./Pages/studentAttendance/StudentsAttendance";
+import PlayerAttendanceHistory from "./Pages/studentAttendance/PlayerAttendanceHistory";
 
 function App() {
   return (
@@ -205,6 +207,8 @@ function App() {
 
             <Route element={<CoachLayout/>} >
             <Route path="/coach" element={<CoachDashboard/>}/>
+            <Route path="/coach/player-attendance" element={<StudentsAttendance/>} />
+            <Route path="/coach/Playee-attendance-history" element={<PlayerAttendanceHistory/>} />
 
             <Route path="/coach-attendance" element={<CoachAttendanceManagement/>} />
             

@@ -1,5 +1,9 @@
 import axiosClient from "../../api/axiosClient";
 
+import attendancePunchAxiosClient
+  from "../../api/attendancePunchAxiosClient";
+
+
 const ReceptionistAttendanceService = {
 
   // ==========================================================
@@ -32,11 +36,12 @@ const ReceptionistAttendanceService = {
 
   // ==========================================================
   // PUNCH IN
+  // USE ACADEMY NETWORK CLIENT
   // ==========================================================
 
   punchIn: async () => {
 
-    const res = await axiosClient.post(
+    const res = await attendancePunchAxiosClient.post(
       "/employee-attendance/punch-in"
     );
 
@@ -46,11 +51,12 @@ const ReceptionistAttendanceService = {
 
   // ==========================================================
   // PUNCH OUT
+  // USE ACADEMY NETWORK CLIENT
   // ==========================================================
 
   punchOut: async () => {
 
-    const res = await axiosClient.post(
+    const res = await attendancePunchAxiosClient.post(
       "/employee-attendance/punch-out"
     );
 
@@ -58,5 +64,6 @@ const ReceptionistAttendanceService = {
   },
 
 };
+
 
 export default ReceptionistAttendanceService;
