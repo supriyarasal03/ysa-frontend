@@ -1063,10 +1063,6 @@ const totalSales =
                 </th>
 
                 <th className="px-6 py-5 text-left text-xs font-semibold tracking-wide text-[#55718f]">
-                  TRANSACTION
-                </th>
-
-                <th className="px-6 py-5 text-left text-xs font-semibold tracking-wide text-[#55718f]">
                   STUDENT
                 </th>
 
@@ -1110,7 +1106,7 @@ const totalSales =
                 <tr>
 
                   <td
-                    colSpan="10"
+                    colSpan="9"
                     className="px-6 py-16 text-center"
                   >
 
@@ -1142,17 +1138,6 @@ const totalSales =
                         {formatDate(
                           row.transactionDate
                         )}
-                      </td>
-
-
-                      {/* TRANSACTION */}
-
-                      <td className="px-6 py-5">
-
-                        <p className="whitespace-nowrap text-sm font-semibold text-[#263e5a]">
-                          {row.transactionNumber}
-                        </p>
-
                       </td>
 
 

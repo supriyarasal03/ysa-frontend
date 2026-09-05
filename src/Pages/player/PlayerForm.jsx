@@ -19,6 +19,7 @@ import {
 import PlayerService from "./PlayerService";
 import PaymentService from "../payment/PaymentService";
 import axiosClient from "../../api/axiosClient";
+import AdmissionReceiptModal from "./AdmissionReceiptModal";
 import { getAllInventory } from "../inventory/inventoryApi";
 
 const bloodGroups = [
@@ -199,6 +200,7 @@ const PlayerForm = () => {
   const [createdPlayer, setCreatedPlayer] = useState(null);
   const [createdEnrollment, setCreatedEnrollment] = useState(null);
   const [installments, setInstallments] = useState([]);
+  const [showAdmissionReceipt, setShowAdmissionReceipt] = useState(false);
   const [selectedInstallment, setSelectedInstallment] = useState(null);
 
   const [paymentPlan, setPaymentPlan] = useState("");
@@ -1268,9 +1270,9 @@ const configuredDiscount = Number(
           : "Player registration and payment completed successfully."
       );
 
-      setTimeout(() => {
-        navigate("/receptionist/players");
-      }, 1800);
+      if (registration?.player?.id) {
+        setShowAdmissionReceipt(true);
+      }
     } catch (error) {
       console.error("Player registration error:", error);
 
@@ -1601,9 +1603,9 @@ const discountedFee = Number(
           : "Player registration and cash payment completed successfully."
       );
 
-      setTimeout(() => {
-        navigate("/receptionist/players");
-      }, 1800);
+      if (registration?.player?.id) {
+        setShowAdmissionReceipt(true);
+      }
     } catch (error) {
       console.error(
         "Player registration error:",
@@ -3776,6 +3778,20 @@ const documentName =
             </div>
           </div>
         </div>
+      )}
+
+      {/* ADMISSION RECEIPT MODAL */}
+      {showAdmissionReceipt && createdPlayer?.id && (
+        <AdmissionReceiptModal
+          playerId={createdPlayer.id}
+          onClose={() => {
+            setShowAdmissionReceipt(false);
+          }}
+          onContinue={() => {
+            setShowAdmissionReceipt(false);
+            navigate("/receptionist/players");
+          }}
+        />
       )}
     </div>
   );
