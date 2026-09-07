@@ -409,12 +409,7 @@ const InventoryManagerLayout = () => {
       end: false,
     },
 
-    {
-      name: "Attendance",
-      path: "/innventory-attendance",
-      icon: CalendarDays,
-      end: false,
-    },
+   
 
   ];
 

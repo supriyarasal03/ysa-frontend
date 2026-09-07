@@ -392,11 +392,7 @@ const CoachLayout = () => {
       icon: LayoutDashboard,
     },
 
-    {
-      name: "Attendance",
-      path: "/coach-attendance",
-      icon: CalendarCheck2,
-    },
+    
 
 
     {

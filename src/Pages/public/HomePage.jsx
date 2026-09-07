@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import Hero from "../../components/home/Hero";
 import WhyChooseUs from "../../components/home/WhyChooseUs";
 import SportsSection from "../../components/home/SportsSection";
-import JoinAsCoach from "../../components/home/JoinAsCoach";
+
 import Gallery from "../../components/home/Gallery";
 import ContactSection from "../../components/home/ContactSection";
 import Navbar from "../../components/layout/Navbar";
@@ -31,7 +31,7 @@ const HomePage = () => {
       <Hero />
       <WhyChooseUs />
       <SportsSection />
-      <JoinAsCoach />
+     
       <Gallery />
       <ContactSection />
       <Footer />

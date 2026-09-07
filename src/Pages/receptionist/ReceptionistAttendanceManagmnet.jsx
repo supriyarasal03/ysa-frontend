@@ -1,70 +1,68 @@
 import React, { useEffect, useState } from "react";
+
 import {
   CalendarDays,
-  UserCheck,
-  UserX,
   Clock3,
   AlertCircle,
+  Search,
+  Eye,
+  ArrowLeft,
+  UserRound,
 } from "lucide-react";
 
-import ReceptionistAttendanceService from "./ReceptionistAttendanceService.js";
+import ReceptionistAttendanceService
+  from "./ReceptionistAttendanceService.js";
+
 
 const ReceptionistAttendanceManagement = () => {
 
   // ==========================================================
-  // STATES
+  // STAFF LIST STATES
   // ==========================================================
 
-  const [todayAttendance, setTodayAttendance] =
-    useState(null);
+  const [staffRecords, setStaffRecords] =
+    useState([]);
+
+  const [searchKeyword, setSearchKeyword] =
+    useState("");
+
+  const [selectedRole, setSelectedRole] =
+    useState("ALL");
+
+
+  // ==========================================================
+  // ATTENDANCE HISTORY STATES
+  // ==========================================================
 
   const [attendanceRecords, setAttendanceRecords] =
     useState([]);
 
+  const [selectedStaff, setSelectedStaff] =
+    useState(null);
+
+
+  // ==========================================================
+  // LOADING / ERROR
+  // ==========================================================
+
   const [loading, setLoading] =
     useState(true);
+
+  const [historyLoading, setHistoryLoading] =
+    useState(false);
 
   const [errorMessage, setErrorMessage] =
     useState("");
 
 
   // ==========================================================
-  // LOAD TODAY'S ATTENDANCE
+  // LOAD STAFF LIST
   // ==========================================================
 
-  const loadTodayAttendance = async () => {
-
-    try {
-
-      const response =
-        await ReceptionistAttendanceService
-          .getTodayAttendance();
-
-      setTodayAttendance(response);
-
-    } catch (error) {
-
-      if (error?.response?.status === 404) {
-
-        setTodayAttendance(null);
-
-      } else {
-
-        console.error(
-          "Today's attendance loading error:",
-          error
-        );
-
-      }
-    }
-  };
-
-
-  // ==========================================================
-  // LOAD ATTENDANCE HISTORY
-  // ==========================================================
-
-  const loadAttendance = async () => {
+  const loadStaff = async (
+    keyword = searchKeyword,
+    role = selectedRole
+  ) => {
 
     try {
 
@@ -73,51 +71,31 @@ const ReceptionistAttendanceManagement = () => {
 
       const response =
         await ReceptionistAttendanceService
-          .getMyAttendance();
+          .getAdminStaffList(
+            keyword,
+            role
+          );
 
       const records =
         Array.isArray(response)
           ? response
           : [];
 
-      // ------------------------------------------------------
-      // LATEST RECORD FIRST
-      // ------------------------------------------------------
-
-      const sortedRecords =
-        [...records].sort((a, b) => {
-
-          const dateA =
-            new Date(
-              `${a.attendanceDate}T${
-                a.punchInTime || "00:00:00"
-              }`
-            );
-
-          const dateB =
-            new Date(
-              `${b.attendanceDate}T${
-                b.punchInTime || "00:00:00"
-              }`
-            );
-
-          return dateB - dateA;
-
-        });
-
-      setAttendanceRecords(sortedRecords);
+      setStaffRecords(records);
 
     } catch (error) {
 
       console.error(
-        "Attendance loading error:",
+        "Staff attendance loading error:",
         error
       );
 
       setErrorMessage(
         error?.response?.data?.message ||
-        "Unable to load attendance records."
+        "Unable to load staff records."
       );
+
+      setStaffRecords([]);
 
     } finally {
 
@@ -128,77 +106,158 @@ const ReceptionistAttendanceManagement = () => {
 
 
   // ==========================================================
-  // LOAD ALL ATTENDANCE DATA
-  // ==========================================================
-
-  const refreshAttendance = async () => {
-
-    await Promise.all([
-      loadTodayAttendance(),
-      loadAttendance(),
-    ]);
-
-  };
-
-
-  // ==========================================================
   // INITIAL LOAD
   // ==========================================================
 
   useEffect(() => {
 
-    refreshAttendance();
+    loadStaff("", "ALL");
 
   }, []);
 
 
   // ==========================================================
-  // LISTEN FOR ATTENDANCE UPDATE
+  // SEARCH
   // ==========================================================
 
-  useEffect(() => {
+  const handleSearch = (
+    event
+  ) => {
 
-    const handleAttendanceUpdated = () => {
+    const value =
+      event.target.value;
 
-      refreshAttendance();
+    setSearchKeyword(value);
 
-    };
-
-    window.addEventListener(
-      "attendanceUpdated",
-      handleAttendanceUpdated
+    loadStaff(
+      value,
+      selectedRole
     );
+  };
 
-    return () => {
 
-      window.removeEventListener(
-        "attendanceUpdated",
-        handleAttendanceUpdated
+  // ==========================================================
+  // ROLE FILTER
+  // ==========================================================
+
+  const handleRoleChange = (
+    event
+  ) => {
+
+    const role =
+      event.target.value;
+
+    setSelectedRole(role);
+
+    loadStaff(
+      searchKeyword,
+      role
+    );
+  };
+
+
+  // ==========================================================
+  // VIEW STAFF ATTENDANCE
+  // ==========================================================
+
+  const handleViewAttendance = async (
+    staff
+  ) => {
+
+    try {
+
+      setHistoryLoading(true);
+      setErrorMessage("");
+
+      const response =
+        await ReceptionistAttendanceService
+          .getAdminStaffAttendanceHistory(
+            staff.userId
+          );
+
+      const records =
+        Array.isArray(response)
+          ? response
+          : [];
+
+
+      // ------------------------------------------------------
+      // LATEST RECORD FIRST
+      // ------------------------------------------------------
+
+      const sortedRecords =
+        [...records].sort(
+          (a, b) => {
+
+            const dateA =
+              new Date(
+                `${a.attendanceDate}T${
+                  a.punchInTime || "00:00:00"
+                }`
+              );
+
+            const dateB =
+              new Date(
+                `${b.attendanceDate}T${
+                  b.punchInTime || "00:00:00"
+                }`
+              );
+
+            return dateB - dateA;
+          }
+        );
+
+
+      setAttendanceRecords(
+        sortedRecords
       );
 
-    };
+      setSelectedStaff(
+        staff
+      );
 
-  }, []);
+    } catch (error) {
+
+      console.error(
+        "Staff attendance history error:",
+        error
+      );
+
+      setErrorMessage(
+        error?.response?.data?.message ||
+        "Unable to load attendance history."
+      );
+
+    } finally {
+
+      setHistoryLoading(false);
+
+    }
+  };
 
 
   // ==========================================================
-  // SUMMARY
+  // BACK TO STAFF LIST
   // ==========================================================
 
-  const presentDays =
-    attendanceRecords.length;
+  const handleBack = () => {
 
-  const totalDays =
-    attendanceRecords.length;
+    setSelectedStaff(null);
 
-  const absentDays = 0;
+    setAttendanceRecords([]);
+
+    setErrorMessage("");
+
+  };
 
 
   // ==========================================================
   // FORMAT DATE
   // ==========================================================
 
-  const formatDate = (date) => {
+  const formatDate = (
+    date
+  ) => {
 
     if (!date) {
       return "--";
@@ -220,7 +279,9 @@ const ReceptionistAttendanceManagement = () => {
   // FORMAT TIME
   // ==========================================================
 
-  const formatTime = (time) => {
+  const formatTime = (
+    time
+  ) => {
 
     if (!time) {
       return "--";
@@ -234,7 +295,10 @@ const ReceptionistAttendanceManagement = () => {
     }
 
     let hour =
-      parseInt(parts[0], 10);
+      parseInt(
+        parts[0],
+        10
+      );
 
     const minute =
       parts[1];
@@ -256,7 +320,9 @@ const ReceptionistAttendanceManagement = () => {
   // FORMAT HOURS
   // ==========================================================
 
-  const formatHours = (hours) => {
+  const formatHours = (
+    hours
+  ) => {
 
     if (
       hours === null ||
@@ -273,33 +339,280 @@ const ReceptionistAttendanceManagement = () => {
 
 
   // ==========================================================
-  // UI
+  // FORMAT ROLE
+  // ==========================================================
+
+  const formatRole = (
+    role
+  ) => {
+
+    if (!role) {
+      return "--";
+    }
+
+    return role
+      .replaceAll("_", " ")
+      .toLowerCase()
+      .replace(/\b\w/g, char =>
+        char.toUpperCase()
+      );
+
+  };
+
+
+  // ==========================================================
+  // STAFF HISTORY VIEW
+  // ==========================================================
+
+  if (selectedStaff) {
+
+    return (
+
+      <div className="min-h-screen bg-slate-100 px-6 py-6">
+
+        {/* ====================================================
+            ERROR
+        ==================================================== */}
+
+        {errorMessage && (
+
+          <div className="mb-6 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+
+            <AlertCircle className="w-5 h-5" />
+
+            {errorMessage}
+
+          </div>
+
+        )}
+
+
+        {/* ====================================================
+            HEADER
+        ==================================================== */}
+
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+
+          <div className="px-8 py-7 border-b border-slate-100">
+
+            <button
+              type="button"
+              onClick={handleBack}
+              className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800 mb-5"
+            >
+
+              <ArrowLeft className="w-4 h-4" />
+
+              Back to Staff
+
+            </button>
+
+
+            <div className="flex items-center justify-between">
+
+              <div>
+
+                <p className="text-sm font-medium text-slate-400 uppercase tracking-wide mb-2">
+
+                  Attendance History
+
+                </p>
+
+                <h2 className="text-2xl font-semibold text-slate-900">
+
+                  {selectedStaff.name || "--"}
+
+                </h2>
+
+                <div className="flex items-center gap-4 mt-2 text-sm text-slate-500">
+
+                  <span>
+                    Username: {selectedStaff.username || "--"}
+                  </span>
+
+                  <span>
+                    Role: {formatRole(selectedStaff.role)}
+                  </span>
+
+                </div>
+
+              </div>
+
+
+              <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center">
+
+                <UserRound className="w-6 h-6 text-slate-500" />
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          {/* ==================================================
+              TABLE HEADER
+          ================================================== */}
+
+          <div className="grid grid-cols-4 bg-slate-50 border-b border-slate-100 px-8 py-5">
+
+            <div className="text-xs font-medium text-slate-500 uppercase">
+              Date
+            </div>
+
+            <div className="text-xs font-medium text-slate-500 uppercase">
+              Punch In
+            </div>
+
+            <div className="text-xs font-medium text-slate-500 uppercase">
+              Punch Out
+            </div>
+
+            <div className="text-xs font-medium text-slate-500 uppercase">
+              Total Hours
+            </div>
+
+          </div>
+
+
+          {/* ==================================================
+              HISTORY LOADING
+          ================================================== */}
+
+          {historyLoading && (
+
+            <div className="px-8 py-12 text-center text-slate-400">
+
+              Loading attendance history...
+
+            </div>
+
+          )}
+
+
+          {/* ==================================================
+              HISTORY EMPTY
+          ================================================== */}
+
+          {!historyLoading &&
+            attendanceRecords.length === 0 && (
+
+              <div className="px-8 py-16 text-center">
+
+                <CalendarDays
+                  className="w-12 h-12 mx-auto text-slate-300 mb-4"
+                />
+
+                <p className="text-lg font-medium text-slate-600">
+
+                  No attendance records found
+
+                </p>
+
+                <p className="text-sm text-slate-400 mt-2">
+
+                  This staff member has no attendance history.
+
+                </p>
+
+              </div>
+
+            )}
+
+
+          {/* ==================================================
+              HISTORY RECORDS
+          ================================================== */}
+
+          {!historyLoading &&
+            attendanceRecords.map(
+              (record) => (
+
+                <div
+                  key={record.id}
+                  className="grid grid-cols-4 items-center px-8 py-6 border-b border-slate-100 last:border-b-0"
+                >
+
+                  {/* DATE */}
+
+                  <div className="flex items-center gap-4">
+
+                    <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center">
+
+                      <CalendarDays
+                        className="w-5 h-5 text-slate-500"
+                      />
+
+                    </div>
+
+                    <span className="font-medium text-slate-800">
+
+                      {formatDate(
+                        record.attendanceDate
+                      )}
+
+                    </span>
+
+                  </div>
+
+
+                  {/* PUNCH IN */}
+
+                  <div className="font-medium text-slate-700">
+
+                    {formatTime(
+                      record.punchInTime
+                    )}
+
+                  </div>
+
+
+                  {/* PUNCH OUT */}
+
+                  <div className="font-medium text-slate-700">
+
+                    {formatTime(
+                      record.punchOutTime
+                    )}
+
+                  </div>
+
+
+                  {/* TOTAL HOURS */}
+
+                  <div>
+
+                    <span className="inline-flex items-center rounded-xl bg-sky-50 px-4 py-2 font-medium text-sky-600">
+
+                      {formatHours(
+                        record.totalHours
+                      )}
+
+                    </span>
+
+                  </div>
+
+                </div>
+
+              )
+            )}
+
+        </div>
+
+      </div>
+
+    );
+
+  }
+
+
+  // ==========================================================
+  // STAFF LIST VIEW
   // ==========================================================
 
   return (
 
     <div className="min-h-screen bg-slate-100 px-6 py-6">
-
-      {/* ====================================================
-          HEADER
-      ==================================================== */}
-
-      <div className="mb-8">
-
-        <h1 className="text-3xl font-semibold text-slate-900">
-
-          My Attendance
-
-        </h1>
-
-        <p className="mt-1 text-sm text-slate-500">
-
-          View your attendance summary and attendance records
-
-        </p>
-
-      </div>
-
 
       {/* ====================================================
           ERROR
@@ -319,127 +632,21 @@ const ReceptionistAttendanceManagement = () => {
 
 
       {/* ====================================================
-          SUMMARY CARDS
-      ==================================================== */}
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-
-
-        {/* ABSENT */}
-
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-7">
-
-          <div className="flex items-center gap-5">
-
-            <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center">
-
-              <UserX className="w-8 h-8 text-red-500" />
-
-            </div>
-
-            <div>
-
-              <p className="text-sm text-slate-500 mb-3">
-
-                Absent Days
-
-              </p>
-
-              <p className="text-3xl font-semibold text-slate-900">
-
-                {loading ? "--" : absentDays}
-
-              </p>
-
-            </div>
-
-          </div>
-
-        </div>
-
-
-        {/* PRESENT */}
-
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-7">
-
-          <div className="flex items-center gap-5">
-
-            <div className="w-16 h-16 rounded-2xl bg-emerald-50 flex items-center justify-center">
-
-              <UserCheck className="w-8 h-8 text-emerald-500" />
-
-            </div>
-
-            <div>
-
-              <p className="text-sm text-slate-500 mb-3">
-
-                Present Days
-
-              </p>
-
-              <p className="text-3xl font-semibold text-slate-900">
-
-                {loading ? "--" : presentDays}
-
-              </p>
-
-            </div>
-
-          </div>
-
-        </div>
-
-
-        {/* TOTAL */}
-
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-7">
-
-          <div className="flex items-center gap-5">
-
-            <div className="w-16 h-16 rounded-2xl bg-sky-50 flex items-center justify-center">
-
-              <CalendarDays className="w-8 h-8 text-sky-500" />
-
-            </div>
-
-            <div>
-
-              <p className="text-sm text-slate-500 mb-3">
-
-                Total Days
-
-              </p>
-
-              <p className="text-3xl font-semibold text-slate-900">
-
-                {loading ? "--" : totalDays}
-
-              </p>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-
-      {/* ====================================================
-          ATTENDANCE RECORDS
+          STAFF RECORDS
       ==================================================== */}
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
 
 
-        {/* HEADER */}
+        {/* ==================================================
+            HEADER
+        ================================================== */}
 
         <div className="px-8 py-7">
 
           <p className="text-sm font-medium text-slate-400 uppercase tracking-wide mb-3">
 
-            Records
+            Staff
 
           </p>
 
@@ -447,7 +654,7 @@ const ReceptionistAttendanceManagement = () => {
 
             <h2 className="text-2xl font-semibold text-slate-900">
 
-              Attendance Records
+              Staff Attendance
 
             </h2>
 
@@ -455,7 +662,7 @@ const ReceptionistAttendanceManagement = () => {
 
               <Clock3 className="w-5 h-5" />
 
-              My Records
+              Attendance Management
 
             </div>
 
@@ -464,28 +671,89 @@ const ReceptionistAttendanceManagement = () => {
         </div>
 
 
-        {/* TABLE HEADER */}
+        {/* ==================================================
+            SEARCH + ROLE FILTER
+        ================================================== */}
 
-        <div className="grid grid-cols-5 bg-slate-50 border-y border-slate-100 px-8 py-5">
+        <div className="px-8 pb-7">
+
+          <div className="flex flex-col md:flex-row gap-4">
+
+
+            {/* SEARCH */}
+
+            <div className="relative flex-1">
+
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"
+              />
+
+              <input
+                type="text"
+                value={searchKeyword}
+                onChange={handleSearch}
+                placeholder="Search staff by name or username..."
+                className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-12 pr-4 text-sm text-slate-700 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+              />
+
+            </div>
+
+
+            {/* ROLE */}
+
+            <select
+              value={selectedRole}
+              onChange={handleRoleChange}
+              className="w-full md:w-64 rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm text-slate-700 outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+            >
+
+              <option value="ALL">
+                All Staff
+              </option>
+
+              <option value="RECEPTIONIST">
+                Receptionist
+              </option>
+
+              <option value="COACH">
+                Coach
+              </option>
+
+              <option value="INVENTORY_MANAGER">
+                Inventory Manager
+              </option>
+
+              <option value="CLEANING_STAFF">
+                Cleaning Staff
+              </option>
+
+            </select>
+
+          </div>
+
+        </div>
+
+
+        {/* ==================================================
+            TABLE HEADER
+        ================================================== */}
+
+        <div className="grid grid-cols-4 bg-slate-50 border-y border-slate-100 px-8 py-5">
 
           <div className="text-xs font-medium text-slate-500 uppercase">
-            Date
+            Employee
           </div>
 
           <div className="text-xs font-medium text-slate-500 uppercase">
-            UserName
+            Username
           </div>
 
           <div className="text-xs font-medium text-slate-500 uppercase">
-            Punch In
+            Role
           </div>
 
           <div className="text-xs font-medium text-slate-500 uppercase">
-            Punch Out
-          </div>
-
-          <div className="text-xs font-medium text-slate-500 uppercase">
-            Total Hours
+            Action
           </div>
 
         </div>
@@ -499,7 +767,7 @@ const ReceptionistAttendanceManagement = () => {
 
           <div className="px-8 py-12 text-center text-slate-400">
 
-            Loading attendance records...
+            Loading staff records...
 
           </div>
 
@@ -511,104 +779,115 @@ const ReceptionistAttendanceManagement = () => {
         ================================================== */}
 
         {!loading &&
-          attendanceRecords.length === 0 && (
+          staffRecords.length === 0 && (
 
             <div className="px-8 py-16 text-center">
 
-              <CalendarDays className="w-12 h-12 mx-auto text-slate-300 mb-4" />
+              <UserRound
+                className="w-12 h-12 mx-auto text-slate-300 mb-4"
+              />
 
               <p className="text-lg font-medium text-slate-600">
 
-                No attendance records found
+                No staff found
 
               </p>
 
               <p className="text-sm text-slate-400 mt-2">
 
-                Your attendance records will appear here.
+                Try another name, username, or role.
 
               </p>
 
             </div>
 
-        )}
+          )}
 
 
         {/* ==================================================
-            RECORDS
+            STAFF RECORDS
         ================================================== */}
 
         {!loading &&
-          attendanceRecords.map((record) => (
+          staffRecords.map(
+            (staff) => (
 
-            <div
-              key={record.id}
-              className="grid grid-cols-5 items-center px-8 py-6 border-b border-slate-100 last:border-b-0"
-            >
+              <div
+                key={staff.userId}
+                className="grid grid-cols-4 items-center px-8 py-5 border-b border-slate-100 last:border-b-0"
+              >
 
-              {/* DATE */}
+                {/* EMPLOYEE */}
 
-              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4">
 
-                <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center">
+                  <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center">
 
-                  <CalendarDays className="w-5 h-5 text-slate-500" />
+                    <UserRound
+                      className="w-5 h-5 text-slate-500"
+                    />
+
+                  </div>
+
+                  <span className="font-medium text-slate-800">
+
+                    {staff.name || "--"}
+
+                  </span>
 
                 </div>
 
-                <span className="font-medium text-slate-800">
 
-                  {formatDate(record.attendanceDate)}
+                {/* USERNAME */}
 
-                </span>
+                <div className="font-medium text-slate-700">
+
+                  {staff.username || "--"}
+
+                </div>
+
+
+                {/* ROLE */}
+
+                <div>
+
+                  <span className="inline-flex rounded-xl bg-slate-100 px-3 py-2 text-sm font-medium text-slate-600">
+
+                    {formatRole(
+                      staff.role
+                    )}
+
+                  </span>
+
+                </div>
+
+
+                {/* ACTION */}
+
+                <div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleViewAttendance(
+                        staff
+                      )
+                    }
+                    className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700"
+                  >
+
+                    <Eye className="w-4 h-4" />
+
+                    View
+
+                  </button>
+
+                </div>
 
               </div>
 
-
-              {/* NAME */}
-
-              <div className="font-medium text-slate-800">
-
-                {record.name ||
-                  record.username ||
-                  "Receptionist"}
-
-              </div>
-
-
-              {/* PUNCH IN */}
-
-              <div className="font-medium text-slate-700">
-
-                {formatTime(record.punchInTime)}
-
-              </div>
-
-
-              {/* PUNCH OUT */}
-
-              <div className="font-medium text-slate-700">
-
-                {formatTime(record.punchOutTime)}
-
-              </div>
-
-
-              {/* TOTAL HOURS */}
-
-              <div>
-
-                <span className="inline-flex items-center rounded-xl bg-sky-50 px-4 py-2 font-medium text-sky-600">
-
-                  {formatHours(record.totalHours)}
-
-                </span>
-
-              </div>
-
-            </div>
-
-          ))}
+            )
+          )}
 
       </div>
 
@@ -617,5 +896,6 @@ const ReceptionistAttendanceManagement = () => {
   );
 
 };
+
 
 export default ReceptionistAttendanceManagement;

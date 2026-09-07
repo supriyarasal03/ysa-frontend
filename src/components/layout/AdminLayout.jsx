@@ -4,12 +4,12 @@ import {
   Users,
   Trophy,
   UserRoundCog,
-  CalendarCheck2,
+   ClipboardCheck,
   Package,
   LogOut,
   Menu,
   X,
-  Clock,
+ 
 } from "lucide-react";
 import {
   NavLink,
@@ -18,7 +18,7 @@ import {
 } from "react-router-dom";
 
 import axiosClient from "../../api/axiosClient";
-import AdminAttendanceService from "../../Pages/admin/AdminAttendanceService";
+
 
 
 const AdminLayout = () => {
@@ -26,11 +26,6 @@ const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] =
     React.useState(true);
 
-  const [todayAttendance, setTodayAttendance] =
-    useState(null);
-
-  const [attendanceLoading, setAttendanceLoading] =
-    useState(false);
 
   const [adminName, setAdminName] =
     useState("");
@@ -71,160 +66,21 @@ const AdminLayout = () => {
   };
 
 
-  // ==========================================================
-  // ATTENDANCE
-  // ==========================================================
 
-  const loadTodayAttendance = async () => {
 
-    try {
 
-      const response =
-        await AdminAttendanceService.getTodayAttendance();
 
-      if (response?.data) {
-        setTodayAttendance(response.data);
-      } else {
-        setTodayAttendance(response);
-      }
-
-    } catch (error) {
-
-      console.error(
-        "Attendance loading error:",
-        error
-      );
-
-      setTodayAttendance(null);
-
-    }
-
-  };
 
 
   useEffect(() => {
-
     loadAdminProfile();
-
-    loadTodayAttendance();
-
-    const handleAttendanceUpdated = () => {
-      loadTodayAttendance();
-    };
-
-    window.addEventListener(
-      "attendanceUpdated",
-      handleAttendanceUpdated
-    );
-
-    return () => {
-
-      window.removeEventListener(
-        "attendanceUpdated",
-        handleAttendanceUpdated
-      );
-
-    };
-
   }, []);
 
 
-  const handleAttendance = async () => {
-
-    if (attendanceLoading) {
-      return;
-    }
-
-    try {
-
-      setAttendanceLoading(true);
-
-      let response;
-
-      if (
-        todayAttendance?.punchInTime &&
-        !todayAttendance?.punchOutTime
-      ) {
-
-        response =
-          await AdminAttendanceService.punchOut();
-
-      } else {
-
-        response =
-          await AdminAttendanceService.punchIn();
-
-      }
-
-
-      if (response?.data) {
-        setTodayAttendance(response.data);
-      } else {
-        setTodayAttendance(response);
-      }
-
-
-      window.dispatchEvent(
-        new Event("attendanceUpdated")
-      );
 
 
 
 
-
-
-
-
-
-
-
-    } catch (error) {
-
-  if (
-    error?.code === "ERR_NETWORK" ||
-    error?.code === "ECONNABORTED" ||
-    error?.code === "ETIMEDOUT" ||
-    error?.message === "Network Error"
-  ) {
-
-    window.alert(
-      "Please connect to Academy Wi-Fi."
-    );
-
-  } else if (error?.response?.status === 403) {
-
-    window.alert(
-      "Attendance can only be marked from Academy Wi-Fi."
-    );
-
-  } else {
-
-    console.error(
-      "Attendance action error:",
-      error
-    );
-
-    window.alert(
-      error?.response?.data?.message ||
-      "Unable to mark attendance. Please try again."
-    );
-
-  }
-
-
-
-
-
-
-
-
-    } finally {
-
-      setAttendanceLoading(false);
-
-    }
-
-  };
 
 
   // ==========================================================
@@ -275,13 +131,17 @@ const AdminLayout = () => {
     },
 
 
+
     {
-      name: "Attendance",
-      path: "/admin/attendance",
-      icon: CalendarCheck2,
-    },
+  name: "Staff Attendance",
+  path: "/admin/receptionist-attendance",
+  icon: ClipboardCheck,
+},
 
 
+
+
+   
 
 
     
@@ -385,61 +245,15 @@ const AdminLayout = () => {
 
         {/* ATTENDANCE BUTTON */}
 
-        {sidebarOpen &&
-          !(
-            todayAttendance?.punchInTime &&
-            todayAttendance?.punchOutTime
-          ) && (
-
-          <div
-            style={{
-              padding: "18px 16px 0",
-            }}
-          >
-
-            <button
-              type="button"
-              onClick={handleAttendance}
-              disabled={attendanceLoading}
 
 
-              style={{
-                width: "100%",
-                border: "none",
-                borderRadius: "10px",
-                padding: "12px 14px",
-                background: "#1d2a40",
-                color: "#fff",
+        
 
 
-                cursor: attendanceLoading
-                  ? "not-allowed"
-                  : "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "10px",
-                fontSize: "15px",
-                fontWeight: "600",
-                opacity: attendanceLoading
-                  ? 0.7
-                  : 1,
-              }}
-            >
 
-              <Clock size={19} />
 
-              {attendanceLoading
-                ? "Processing..."
-                : todayAttendance?.punchInTime
-                  ? "Punch Out"
-                  : "Punch In"}
 
-            </button>
 
-          </div>
-
-        )}
 
 
         {/* SIDEBAR MENU */}

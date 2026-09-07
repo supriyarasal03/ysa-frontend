@@ -56,11 +56,7 @@ const ReceptionistLayout = () => {
       icon: CreditCard,
     },
 
-    {
-      name: "Attendance",
-      path: "/receptionist-attendance",
-      icon: Calendar,
-    },
+   
 
   ];
 

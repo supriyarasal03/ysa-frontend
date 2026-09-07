@@ -1,17 +1,11 @@
 import axios from "axios";
 
-const attendancePunchAxiosClient = axios.create({
-  baseURL: "http://192.168.0.108:8080/api",
-
-  // ==========================================================
-  // STOP PUNCH REQUEST QUICKLY IF ACADEMY NETWORK
-  // IS NOT REACHABLE
-  // ==========================================================
-
+const attendanceAxiosClient = axios.create({
+  baseURL: "http://localhost:8080/api",
   timeout: 5000,
 });
 
-attendancePunchAxiosClient.interceptors.request.use((config) => {
+attendanceAxiosClient.interceptors.request.use((config) => {
 
   const token = localStorage.getItem("token");
 
@@ -26,4 +20,4 @@ attendancePunchAxiosClient.interceptors.request.use((config) => {
   return config;
 });
 
-export default attendancePunchAxiosClient;
+export default attendanceAxiosClient;

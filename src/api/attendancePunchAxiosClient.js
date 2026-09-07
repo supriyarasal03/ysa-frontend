@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const attendancePunchAxiosClient = axios.create({
-  baseURL: "http://192.168.0.108:8080/api",
+  baseURL: "http://localhost:8080/api",
 
   // ==========================================================
   // STOP PUNCH REQUEST QUICKLY IF ACADEMY NETWORK

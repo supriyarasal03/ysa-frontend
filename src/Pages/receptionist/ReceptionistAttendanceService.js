@@ -35,6 +35,84 @@ const ReceptionistAttendanceService = {
 
 
   // ==========================================================
+  // ADMIN - GET STAFF LIST
+  //
+  // keyword = employee name or username
+  // role = staff role
+  // ==========================================================
+
+  getAdminStaffList: async (
+    keyword = "",
+    role = ""
+  ) => {
+
+    const params = {};
+
+    if (keyword && keyword.trim()) {
+      params.keyword = keyword.trim();
+    }
+
+    if (role && role !== "ALL") {
+      params.role = role;
+    }
+
+    const res = await axiosClient.get(
+      "/employee-attendance/admin/staff",
+      {
+        params,
+      }
+    );
+
+    return res.data;
+  },
+
+
+
+
+// ==========================================================
+// ADMIN - GET TODAY'S ATTENDANCE OF ALL STAFF
+// ==========================================================
+
+getAdminTodayStaffAttendance: async () => {
+  const res = await axiosClient.get(
+    "/employee-attendance/admin/today"
+  );
+
+  return res.data;
+},
+
+getAdminStaffAttendanceHistory: async (
+  userId
+) => {
+  const res = await axiosClient.get(
+    `/employee-attendance/admin/staff/${userId}/history`
+  );
+  return res.data;
+},
+
+
+
+
+
+
+
+  // ==========================================================
+  // ADMIN - GET SELECTED STAFF ATTENDANCE HISTORY
+  // ==========================================================
+
+  getAdminStaffAttendanceHistory: async (
+    userId
+  ) => {
+
+    const res = await axiosClient.get(
+      `/employee-attendance/admin/staff/${userId}/history`
+    );
+
+    return res.data;
+  },
+
+
+  // ==========================================================
   // PUNCH IN
   // USE ACADEMY NETWORK CLIENT
   // ==========================================================
@@ -64,6 +142,11 @@ const ReceptionistAttendanceService = {
   },
 
 };
+
+
+
+
+
 
 
 export default ReceptionistAttendanceService;

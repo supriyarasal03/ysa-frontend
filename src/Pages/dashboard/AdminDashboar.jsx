@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import ReceptionistAttendanceService from "../receptionist/ReceptionistAttendanceService";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -20,6 +21,9 @@ export default function AdminDashboard() {
   const [selectedMonth, setSelectedMonth] = useState(7);
   const [selectedYear, setSelectedYear] = useState(2026);
   const [activeYearFilter, setActiveYearFilter] = useState("All Time");
+
+  const [todayAttendance, setTodayAttendance] = useState([]);
+  const [attendanceLoading, setAttendanceLoading] = useState(true);
 
   const pickerRef = useRef(null);
 
@@ -38,17 +42,48 @@ export default function AdminDashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    const loadTodayAttendance = async () => {
+      try {
+        setAttendanceLoading(true);
+
+        const data =
+          await ReceptionistAttendanceService.getAdminTodayStaffAttendance();
+
+        setTodayAttendance(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error(
+          "Failed to load today's staff attendance:",
+          error
+        );
+        setTodayAttendance([]);
+      } finally {
+        setAttendanceLoading(false);
+      }
+    };
+
+    loadTodayAttendance();
+  }, []);
+
   const handleMonthSelect = (monthIndex) => {
     setSelectedMonth(monthIndex);
     setShowMonthPicker(false);
   };
+
+  const presentTodayCount = todayAttendance.filter(
+    (employee) =>
+      employee.status === "PRESENT" ||
+      employee.status === "COMPLETED"
+  ).length;
 
   return (
     <>
       {/* ========== HEADER ========== */}
       <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-40">
         <div className="flex items-baseline gap-2">
-          <h1 className="text-xl font-bold text-slate-800">Dashboard Overview</h1>
+          <h1 className="text-xl font-bold text-slate-800">
+            Dashboard Overview
+          </h1>
           <span className="text-sm text-slate-500">
             · All data from Yashree Sports Academy
           </span>
@@ -74,7 +109,11 @@ export default function AdminDashboard() {
                   >
                     <ChevronLeft className="w-4 h-4 text-slate-600" />
                   </button>
-                  <span className="font-semibold text-slate-800">{selectedYear}</span>
+
+                  <span className="font-semibold text-slate-800">
+                    {selectedYear}
+                  </span>
+
                   <button
                     onClick={() => setSelectedYear(selectedYear + 1)}
                     className="p-1.5 rounded-lg hover:bg-slate-100"
@@ -140,6 +179,7 @@ export default function AdminDashboard() {
                   <TrendingUp className="w-3 h-3" /> +14 this month
                 </p>
               </div>
+
               <div className="w-11 h-11 rounded-xl bg-sky-50 flex items-center justify-center">
                 <Users className="w-5 h-5 text-sky-600" />
               </div>
@@ -153,6 +193,7 @@ export default function AdminDashboard() {
                 <p className="text-3xl font-bold text-slate-800">842</p>
                 <p className="text-xs text-orange-500 mt-2">All Active</p>
               </div>
+
               <div className="w-11 h-11 rounded-xl bg-orange-50 flex items-center justify-center">
                 <UserRound className="w-5 h-5 text-orange-500" />
               </div>
@@ -166,24 +207,41 @@ export default function AdminDashboard() {
                 <p className="text-3xl font-bold text-slate-800">7</p>
                 <p className="text-xs text-emerald-600 mt-2">Live now</p>
               </div>
+
               <div className="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center">
                 <Gamepad2 className="w-5 h-5 text-emerald-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+          {/* Today's Staff Attendance */}
+          <button
+            type="button"
+            onClick={() => navigate("/admin/staff-attendance")}
+            className="text-left bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:border-violet-300 hover:shadow-md transition cursor-pointer"
+          >
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-slate-500 mb-1">Sessions Today</p>
-                <p className="text-3xl font-bold text-slate-800">18</p>
-                <p className="text-xs text-sky-600 mt-2">+5 from yesterday</p>
+                <p className="text-sm text-slate-500 mb-1">
+                  Staff Attendance Today
+                </p>
+
+                <p className="text-3xl font-bold text-slate-800">
+                  {attendanceLoading ? "..." : presentTodayCount}
+                </p>
+
+                <p className="text-xs text-sky-600 mt-2">
+                  {attendanceLoading
+                    ? "Loading attendance..."
+                    : `Present out of ${todayAttendance.length} staff`}
+                </p>
               </div>
+
               <div className="w-11 h-11 rounded-xl bg-violet-50 flex items-center justify-center">
                 <CalendarDays className="w-5 h-5 text-violet-600" />
               </div>
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Charts */}
@@ -191,14 +249,20 @@ export default function AdminDashboard() {
           <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="font-semibold text-slate-800">Monthly Player Growth</h2>
-                <p className="text-sm text-slate-500">New registrations vs Active players</p>
+                <h2 className="font-semibold text-slate-800">
+                  Monthly Player Growth
+                </h2>
+                <p className="text-sm text-slate-500">
+                  New registrations vs Active players
+                </p>
               </div>
+
               <div className="flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-1.5">
                   <span className="w-3 h-3 rounded-sm bg-sky-500"></span>
                   <span className="text-slate-600">New</span>
                 </div>
+
                 <div className="flex items-center gap-1.5">
                   <span className="w-3 h-3 rounded-sm bg-orange-400"></span>
                   <span className="text-slate-600">Active</span>
@@ -215,30 +279,45 @@ export default function AdminDashboard() {
                 { month: "Jul", new: 50, active: 75 },
                 { month: "Aug", new: 80, active: 95 },
               ].map((item) => (
-                <div key={item.month} className="flex-1 flex flex-col items-center gap-2">
+                <div
+                  key={item.month}
+                  className="flex-1 flex flex-col items-center gap-2"
+                >
                   <div className="w-full flex items-end justify-center gap-1 h-48">
                     <div
                       className="w-3.5 rounded-t bg-sky-500"
                       style={{ height: `${item.new}%` }}
                     ></div>
+
                     <div
                       className="w-3.5 rounded-t bg-orange-400"
                       style={{ height: `${item.active}%` }}
                     ></div>
                   </div>
-                  <span className="text-xs text-slate-500 font-medium">{item.month}</span>
+
+                  <span className="text-xs text-slate-500 font-medium">
+                    {item.month}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-            <h2 className="font-semibold text-slate-800 mb-1">Role Distribution</h2>
-            <p className="text-sm text-slate-500 mb-5">Users by role</p>
+            <h2 className="font-semibold text-slate-800 mb-1">
+              Role Distribution
+            </h2>
+
+            <p className="text-sm text-slate-500 mb-5">
+              Users by role
+            </p>
 
             <div className="flex items-center justify-center mb-5">
               <div className="relative w-32 h-32">
-                <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                <svg
+                  viewBox="0 0 36 36"
+                  className="w-full h-full -rotate-90"
+                >
                   <circle
                     cx="18"
                     cy="18"
@@ -247,6 +326,7 @@ export default function AdminDashboard() {
                     stroke="#e2e8f0"
                     strokeWidth="3.5"
                   />
+
                   <circle
                     cx="18"
                     cy="18"
@@ -257,6 +337,7 @@ export default function AdminDashboard() {
                     strokeDasharray="67 100"
                     strokeLinecap="round"
                   />
+
                   <circle
                     cx="18"
                     cy="18"
@@ -268,6 +349,7 @@ export default function AdminDashboard() {
                     strokeDashoffset="-67"
                     strokeLinecap="round"
                   />
+
                   <circle
                     cx="18"
                     cy="18"
@@ -280,9 +362,12 @@ export default function AdminDashboard() {
                     strokeLinecap="round"
                   />
                 </svg>
+
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
-                    <p className="text-xl font-bold text-slate-800">1.2k</p>
+                    <p className="text-xl font-bold text-slate-800">
+                      1.2k
+                    </p>
                     <p className="text-xs text-slate-500">Users</p>
                   </div>
                 </div>
@@ -297,6 +382,7 @@ export default function AdminDashboard() {
                 </div>
                 <span className="font-medium">67%</span>
               </div>
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-orange-400"></span>
@@ -304,6 +390,7 @@ export default function AdminDashboard() {
                 </div>
                 <span className="font-medium">18%</span>
               </div>
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-violet-400"></span>
@@ -319,8 +406,13 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="font-semibold text-slate-800">Recent Activity</h2>
-              <button className="text-sm text-sky-600 hover:underline">View all</button>
+              <h2 className="font-semibold text-slate-800">
+                Recent Activity
+              </h2>
+
+              <button className="text-sm text-sky-600 hover:underline">
+                View all
+              </button>
             </div>
 
             <div className="overflow-x-auto">
@@ -333,41 +425,69 @@ export default function AdminDashboard() {
                     <th className="pb-3 font-medium">Status</th>
                   </tr>
                 </thead>
+
                 <tbody className="divide-y divide-slate-50">
                   <tr>
-                    <td className="py-3 font-medium text-slate-800">New player registered</td>
-                    <td className="py-3 text-slate-600">Rahul Sharma</td>
-                    <td className="py-3 text-slate-500">12 min ago</td>
+                    <td className="py-3 font-medium text-slate-800">
+                      New player registered
+                    </td>
+                    <td className="py-3 text-slate-600">
+                      Rahul Sharma
+                    </td>
+                    <td className="py-3 text-slate-500">
+                      12 min ago
+                    </td>
                     <td className="py-3">
                       <span className="text-xs bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full">
                         Success
                       </span>
                     </td>
                   </tr>
+
                   <tr>
-                    <td className="py-3 font-medium text-slate-800">Session created</td>
-                    <td className="py-3 text-slate-600">U-14 Batch A</td>
-                    <td className="py-3 text-slate-500">45 min ago</td>
+                    <td className="py-3 font-medium text-slate-800">
+                      Session created
+                    </td>
+                    <td className="py-3 text-slate-600">
+                      U-14 Batch A
+                    </td>
+                    <td className="py-3 text-slate-500">
+                      45 min ago
+                    </td>
                     <td className="py-3">
                       <span className="text-xs bg-sky-50 text-sky-600 px-2 py-1 rounded-full">
                         Created
                       </span>
                     </td>
                   </tr>
+
                   <tr>
-                    <td className="py-3 font-medium text-slate-800">Coach profile updated</td>
-                    <td className="py-3 text-slate-600">Coach Vikram</td>
-                    <td className="py-3 text-slate-500">2 hrs ago</td>
+                    <td className="py-3 font-medium text-slate-800">
+                      Coach profile updated
+                    </td>
+                    <td className="py-3 text-slate-600">
+                      Coach Vikram
+                    </td>
+                    <td className="py-3 text-slate-500">
+                      2 hrs ago
+                    </td>
                     <td className="py-3">
                       <span className="text-xs bg-orange-50 text-orange-600 px-2 py-1 rounded-full">
                         Updated
                       </span>
                     </td>
                   </tr>
+
                   <tr>
-                    <td className="py-3 font-medium text-slate-800">Payment received</td>
-                    <td className="py-3 text-slate-600">Priya Kapoor</td>
-                    <td className="py-3 text-slate-500">3 hrs ago</td>
+                    <td className="py-3 font-medium text-slate-800">
+                      Payment received
+                    </td>
+                    <td className="py-3 text-slate-600">
+                      Priya Kapoor
+                    </td>
+                    <td className="py-3 text-slate-500">
+                      3 hrs ago
+                    </td>
                     <td className="py-3">
                       <span className="text-xs bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full">
                         Paid
@@ -380,25 +500,39 @@ export default function AdminDashboard() {
           </div>
 
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
-            <h2 className="font-semibold text-slate-800 mb-1">Platform Summary</h2>
-            <p className="text-sm text-slate-500 mb-5">Key metrics at a glance</p>
+            <h2 className="font-semibold text-slate-800 mb-1">
+              Platform Summary
+            </h2>
+
+            <p className="text-sm text-slate-500 mb-5">
+              Key metrics at a glance
+            </p>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-slate-50 rounded-xl p-4 text-center">
                 <p className="text-2xl font-bold text-slate-800">46</p>
                 <p className="text-xs text-slate-500 mt-1">Coaches</p>
               </div>
+
               <div className="bg-slate-50 rounded-xl p-4 text-center">
                 <p className="text-2xl font-bold text-slate-800">18</p>
-                <p className="text-xs text-slate-500 mt-1">Today Sessions</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Today Sessions
+                </p>
               </div>
+
               <div className="bg-slate-50 rounded-xl p-4 text-center">
                 <p className="text-2xl font-bold text-slate-800">7</p>
-                <p className="text-xs text-slate-500 mt-1">Live Games</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Live Games
+                </p>
               </div>
+
               <div className="bg-slate-50 rounded-xl p-4 text-center">
                 <p className="text-2xl font-bold text-slate-800">92%</p>
-                <p className="text-xs text-slate-500 mt-1">Attendance</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Attendance
+                </p>
               </div>
             </div>
           </div>
