@@ -213,6 +213,21 @@ const StudentsAttendance = () => {
 
 
     // ==========================================================
+    // SHOW ATTENDANCE ERROR POPUP
+    // ==========================================================
+
+    const showAttendanceErrorPopup = (
+        message
+    ) => {
+
+        window.alert(
+            message ||
+            "Unable to process attendance."
+        );
+    };
+
+
+    // ==========================================================
     // PUNCH IN
     // ==========================================================
 
@@ -248,7 +263,7 @@ const StudentsAttendance = () => {
 
             } else {
 
-                setError(
+                showAttendanceErrorPopup(
                     response?.message ||
                     "Unable to punch in student."
                 );
@@ -272,7 +287,7 @@ const StudentsAttendance = () => {
             // NORMAL BACKEND ERROR
             // --------------------------------------------------
 
-            setError(
+            showAttendanceErrorPopup(
                 err?.response?.data?.message ||
                 "Unable to punch in student."
             );
@@ -320,7 +335,7 @@ const StudentsAttendance = () => {
 
             } else {
 
-                setError(
+                showAttendanceErrorPopup(
                     response?.message ||
                     "Unable to punch out student."
                 );
@@ -344,7 +359,7 @@ const StudentsAttendance = () => {
             // NORMAL BACKEND ERROR
             // --------------------------------------------------
 
-            setError(
+            showAttendanceErrorPopup(
                 err?.response?.data?.message ||
                 "Unable to punch out student."
             );
@@ -385,6 +400,22 @@ const StudentsAttendance = () => {
             student.attendanceMarkedToday
         ) {
 
+            if (
+                student.attendanceStatus ===
+                "LATE_MARKED"
+            ) {
+
+                return "LATE MARKED";
+            }
+
+            if (
+                student.attendanceStatus ===
+                "ON_TIME"
+            ) {
+
+                return "ON TIME";
+            }
+
             return "Present";
         }
 
@@ -400,28 +431,61 @@ const StudentsAttendance = () => {
 
 
     // ==========================================================
-    // GET STATUS CLASS
+    // GET STATUS STYLE
     // ==========================================================
 
-    const getStatusClass = (
+    const getStatusStyle = (
         student
     ) => {
+
+        if (
+            student.attendanceMarkedToday &&
+            student.attendanceStatus ===
+            "LATE_MARKED"
+        ) {
+
+            return {
+                ...statusStyle,
+                ...lateMarkedStyle
+            };
+        }
+
+        if (
+            student.attendanceMarkedToday &&
+            student.attendanceStatus ===
+            "ON_TIME"
+        ) {
+
+            return {
+                ...statusStyle,
+                ...onTimeStyle
+            };
+        }
 
         if (
             student.attendanceMarkedToday
         ) {
 
-            return "attendance-status present";
+            return {
+                ...statusStyle,
+                ...presentStyle
+            };
         }
 
         if (
             student.attendanceAllowedToday
         ) {
 
-            return "attendance-status absent";
+            return {
+                ...statusStyle,
+                ...absentStyle
+            };
         }
 
-        return "attendance-status unavailable";
+        return {
+            ...statusStyle,
+            ...unavailableStyle
+        };
     };
 
 
@@ -778,14 +842,11 @@ const StudentsAttendance = () => {
                                                     >
 
                                                         <span
-                                                            style={{
-                                                                ...statusStyle,
-                                                                ...(isMarked
-                                                                    ? presentStyle
-                                                                    : attendanceAllowed
-                                                                        ? absentStyle
-                                                                        : unavailableStyle)
-                                                            }}
+                                                            style={
+                                                                getStatusStyle(
+                                                                    student
+                                                                )
+                                                            }
                                                         >
                                                             {getAttendanceStatus(
                                                                 student
@@ -1030,6 +1091,18 @@ const statusStyle = {
 const presentStyle = {
     background: "#dcfce7",
     color: "#166534"
+};
+
+
+const onTimeStyle = {
+    background: "#dcfce7",
+    color: "#166534"
+};
+
+
+const lateMarkedStyle = {
+    background: "#fef3c7",
+    color: "#92400e"
 };
 
 

@@ -4,6 +4,7 @@ import {
   CalendarCheck2,
   ClipboardCheck,
   History,
+  Calendar,
   LogOut,
   Menu,
   X,
@@ -407,6 +408,25 @@ const CoachLayout = () => {
       path: "/coach/Playee-attendance-history",
       icon: History,
     },
+
+
+
+    {
+  name: "Leave",
+  path: "/coach/leave-requests",
+  icon: Calendar,
+},
+
+
+
+{
+  name:"History Batches",
+
+  path:"/admin/history-batches",
+  icon:Calendar,
+
+}
+
 
   ];
 

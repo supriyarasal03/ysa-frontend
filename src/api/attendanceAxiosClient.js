@@ -1,10 +1,8 @@
 import axios from "axios";
-
 const attendanceAxiosClient = axios.create({
-  baseURL: "http://localhost:8080/api",
+  baseURL: "/api",
   timeout: 5000,
 });
-
 attendanceAxiosClient.interceptors.request.use((config) => {
 
   const token = localStorage.getItem("token");

@@ -42,7 +42,7 @@ const Hero = () => {
         </h1>
 
         <p className="text-lg md:text-xl text-white/90 font-medium mb-8 max-w-2xl mx-auto">
-          Building Young Athletes Through Structured Coaching
+          Building Young Athletes Through Structured 
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

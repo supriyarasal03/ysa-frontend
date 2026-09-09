@@ -32,7 +32,7 @@ import {
   downloadCoachFile,
 } from "./CoachService";
 
-const API_BASE = "http://localhost:8080";
+const API_BASE = "";
 
 export default function CoachManagement() {
   const navigate = useNavigate();
@@ -812,6 +812,11 @@ const closeView = () => {
 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
   Experience
 </th>
+
+                <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Salary
+                </th>
+
                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Qualification
                 </th>
@@ -840,7 +845,7 @@ const closeView = () => {
                 <tr>
 
                   <td
-                    colSpan="7"
+                    colSpan="9"
                     className="px-6 py-16 text-center text-slate-500"
                   >
                     Loading coaches...
@@ -948,6 +953,19 @@ const photoUrl =
   {coach.experience !=
   null
     ? `${coach.experience} yrs`
+    : "-"}
+
+</td>
+
+{/* Salary */}
+
+<td className="px-6 py-4 text-sm text-slate-600">
+
+  {coach.salary != null
+    ? `₹${Number(coach.salary).toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`
     : "-"}
 
 </td>
@@ -1487,7 +1505,17 @@ const photoUrl =
     value={viewCoach.qualification || "-"}
   />
 
-
+  <DetailItem
+    label="Monthly Salary"
+    value={
+      viewCoach.salary != null
+        ? `₹${Number(viewCoach.salary).toLocaleString("en-IN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`
+        : "-"
+    }
+  />
 
 
 

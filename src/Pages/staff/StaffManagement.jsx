@@ -37,7 +37,7 @@ import { useState, useEffect } from "react";
 
 //import { viewOrDownloadFile } from "../../utils/fileHelper";
 
-const API_BASE = "http://localhost:8080"; // change if needed
+const API_BASE = ""; // change if needed
 
 export default function StaffManagement() {
   const navigate = useNavigate();
@@ -939,6 +939,17 @@ const openDocumentPreview = async (label, documentType) => {
                       <p className="text-slate-400 text-xs">Role</p>
                       <p className="text-slate-800">
                         {formatRole(viewStaff.role)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 text-xs">Monthly Salary</p>
+                      <p className="text-slate-800">
+                        {viewStaff.salary != null
+                          ? `₹${Number(viewStaff.salary).toLocaleString("en-IN", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}`
+                          : "-"}
                       </p>
                     </div>
                   </div>

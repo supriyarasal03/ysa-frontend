@@ -16,7 +16,7 @@ export const viewOrDownloadFile = async (
   try {
     const url = fileUrl.startsWith("http")
       ? fileUrl
-      : `http://localhost:8080${fileUrl}`;
+      : `${fileUrl}`
 
     const response = await axiosClient.get(url, {
       responseType: "blob",

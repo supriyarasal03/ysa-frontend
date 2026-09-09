@@ -5,6 +5,7 @@ import {
   Trophy,
   UserRoundCog,
    ClipboardCheck,
+    Calendar,
   Package,
   LogOut,
   Menu,
@@ -137,6 +138,22 @@ const AdminLayout = () => {
   path: "/admin/receptionist-attendance",
   icon: ClipboardCheck,
 },
+
+
+
+
+
+
+{
+  name:"Leave Requests",
+
+  path:"/admin/leave-requests",
+  icon:Calendar,
+
+}
+
+
+
 
 
 

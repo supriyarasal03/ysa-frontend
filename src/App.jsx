@@ -71,6 +71,9 @@ import ReceptionistAttendanceManagmnet from "./Pages/receptionist/ReceptionistAt
 import StudentsAttendance from "./Pages/studentAttendance/StudentsAttendance";
 import PlayerAttendanceHistory from "./Pages/studentAttendance/PlayerAttendanceHistory";
 import StaffAttendance from "./Pages/admin/StaffAttendance";
+import LeaveRequest from "./Pages/leaveRequest/LeaveRequest";
+import LeaveRequests from "./Pages/admin/LeaveRequests";
+import HistoryBatches from "./Pages/coach/HistoryBatches";
 
 function App() {
   return (
@@ -98,6 +101,8 @@ function App() {
           <Route path="/admin" element={<AdminDashboar />} />
 
           <Route path="/admin/staff-attendance" element={<StaffAttendance/>}/>
+
+          <Route path="/admin/leave-requests" element={<LeaveRequests/>}/>
 
          
 
@@ -180,6 +185,8 @@ function App() {
           <Route path="/receptionist" element={<ReceptionistDashboard />} />
           <Route path="/receptionist/dashboard" element={<ReceptionistDashboard />} />
 
+          <Route path="/receptionist/leave" element={<LeaveRequest/>} />
+
           
 
           {/* Players */}
@@ -204,6 +211,8 @@ function App() {
 
             <Route element={<CoachLayout/>} >
             <Route path="/coach" element={<CoachDashboard/>}/>
+            <Route path="/admin/history-batches" element={<HistoryBatches/>}/>
+               <Route path="/coach/leave-requests" element={<LeaveRequest/>}/>
             <Route path="/coach/player-attendance" element={<StudentsAttendance/>} />
             <Route path="/coach/Playee-attendance-history" element={<PlayerAttendanceHistory/>} />
 

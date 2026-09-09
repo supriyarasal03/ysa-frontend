@@ -1,24 +1,17 @@
-import axios from "axios";
+  import axios from "axios";
 
-const attendancePunchAxiosClient = axios.create({
-  baseURL: "http://localhost:8080/api",
+  const attendancePunchAxiosClient = axios.create({
+    baseURL: "/api",
+    timeout: 2000,
+  }); 
+  attendancePunchAxiosClient.interceptors.request.use((config) => {
+    const token = localStorage.getItem("token");
 
-  // ==========================================================
-  // STOP PUNCH REQUEST QUICKLY IF ACADEMY NETWORK
-  // IS NOT REACHABLE
-  // ==========================================================
+    if (token && !config.url?.startsWith("/auth")) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
 
-  timeout: 2000,
-});
+    return config;
+  });
 
-attendancePunchAxiosClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-
-  if (token && !config.url?.startsWith("/auth")) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
-  return config;
-});
-
-export default attendancePunchAxiosClient;
+  export default attendancePunchAxiosClient;

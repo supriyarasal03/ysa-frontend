@@ -460,6 +460,74 @@ if (response?.success) {
 
 
     // ==========================================================
+    // GET HISTORY ATTENDANCE STATUS
+    // ==========================================================
+
+    const getHistoryAttendanceStatus = (
+        record
+    ) => {
+
+        if (
+            record.attendanceStatus ===
+            "LATE_MARKED"
+        ) {
+
+            return "LATE MARKED";
+        }
+
+        if (
+            record.attendanceStatus ===
+            "ON_TIME"
+        ) {
+
+            return "ON TIME";
+        }
+
+        return record.status;
+    };
+
+
+    // ==========================================================
+    // GET HISTORY STATUS STYLE
+    // ==========================================================
+
+    const getHistoryStatusStyle = (
+        record
+    ) => {
+
+        if (
+            record.attendanceStatus ===
+            "LATE_MARKED"
+        ) {
+
+            return {
+                ...statusStyle,
+                ...lateMarkedStyle
+            };
+        }
+
+        if (
+            record.attendanceStatus ===
+            "ON_TIME"
+        ) {
+
+            return {
+                ...statusStyle,
+                ...onTimeStyle
+            };
+        }
+
+        return {
+            ...statusStyle,
+            ...(record.status ===
+            "PRESENT"
+                ? presentStyle
+                : absentStyle)
+        };
+    };
+
+
+    // ==========================================================
     // RENDER
     // ==========================================================
 
@@ -1085,16 +1153,16 @@ if (response?.success) {
                                                 >
 
                                                     <span
-                                                        style={{
-                                                            ...statusStyle,
-                                                            ...(record.status ===
-                                                            "PRESENT"
-                                                                ? presentStyle
-                                                                : absentStyle)
-                                                        }}
+                                                        style={
+                                                            getHistoryStatusStyle(
+                                                                record
+                                                            )
+                                                        }
                                                     >
                                                         {
-                                                            record.status
+                                                            getHistoryAttendanceStatus(
+                                                                record
+                                                            )
                                                         }
                                                     </span>
 
@@ -1573,6 +1641,18 @@ const statusStyle = {
 const presentStyle = {
     background: "#dcfce7",
     color: "#166534"
+};
+
+
+const onTimeStyle = {
+    background: "#dcfce7",
+    color: "#166534"
+};
+
+
+const lateMarkedStyle = {
+    background: "#fef3c7",
+    color: "#92400e"
 };
 
 

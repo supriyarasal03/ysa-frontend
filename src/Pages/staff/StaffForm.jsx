@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { addstaff, updateStaff, getStaffById } from "./StaffService";
 
-const API_BASE = "http://localhost:8080";
+const API_BASE = "";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 const ROLE_OPTIONS = [
@@ -99,6 +99,7 @@ const StaffForm = () => {
  joiningDate: new Date().toISOString().split("T")[0],
     highestQualification: "",
     experienceYears: "",
+    salary: "",
     accountNumber: "",
     ifscCode: "",
     aadhaarFront: null,
@@ -283,6 +284,15 @@ const focusField = (name) => {
           return "Experience must be between 0 and 50 years.";
         return "";
 
+      case "salary":
+        if (v === "" || v === null || v === undefined)
+          return "Salary is required.";
+        if (!/^\d+(\.\d{1,2})?$/.test(String(v)))
+          return "Salary must be a valid amount with up to 2 decimal places.";
+        if (Number(v) <= 0)
+          return "Salary must be greater than 0.";
+        return "";
+
       case "bankName":
   if (!v) return "Bank name is required.";
   if (v.length < 2 || v.length > 100)
@@ -339,6 +349,7 @@ const fields = [
   ...(!isEdit ? ["joiningDate"] : []),
   "highestQualification",
 "experienceYears",
+"salary",
 "bankName",
 "branchName",
 "accountHolderName",
@@ -414,6 +425,7 @@ return next;
             : "",
           highestQualification: staff.highestQualification || "",
           experienceYears: staff.experienceYears ?? "",
+          salary: staff.salary ?? "",
 
          bankName: staff.bankName || "",
 branchName: staff.branchName || "",
@@ -664,6 +676,18 @@ if (
       value = value.replace(/\D/g, "").slice(0, 2);
     }
 
+    if (name === "salary") {
+      value = value.replace(/[^0-9.]/g, "");
+      const parts = value.split(".");
+      if (parts.length > 2) {
+        value = `${parts[0]}.${parts.slice(1).join("")}`;
+      }
+      if (value.includes(".")) {
+        const [whole, decimal] = value.split(".");
+        value = `${whole}.${decimal.slice(0, 2)}`;
+      }
+    }
+
     if (name === "username") {
       value = value.replace(/\s/g, "").slice(0, 30);
     }
@@ -826,6 +850,7 @@ fd.append(
 
 
       fd.append("experienceYears", formData.experienceYears);
+      fd.append("salary", formData.salary);
 
 
    fd.append("bankName", formData.bankName.trim());
@@ -1278,6 +1303,28 @@ setTimeout(() => {
                     </span>
                   </div>
                   <ErrorText name="experienceYears" />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 uppercase mb-1.5">
+                    Monthly Salary <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">
+                      ₹
+                    </span>
+                    <input
+                      type="text"
+                      name="salary"
+                      value={formData.salary}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      inputMode="decimal"
+                      placeholder="e.g. 25000"
+                      className={fieldClass("salary", "bg-white pl-9")}
+                    />
+                  </div>
+                  <ErrorText name="salary" />
                 </div>
 
 

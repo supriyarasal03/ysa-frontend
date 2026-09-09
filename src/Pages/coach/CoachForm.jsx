@@ -26,7 +26,7 @@ import {
 // CONSTANTS
 // ============================================================
 
-const API_BASE = "http://localhost:8080";
+const API_BASE = "";
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 
@@ -104,6 +104,7 @@ address: useRef(null),
     sportId: useRef(null),
     experience: useRef(null),
     qualification: useRef(null),
+    salary: useRef(null),
     bankName: useRef(null),
     branchName: useRef(null),
     accountHolderName: useRef(null),
@@ -166,6 +167,7 @@ const [sportsLoading, setSportsLoading] = useState(false);
     sportId: "",
     experience: "",
     qualification: "",
+    salary: "",
 
     // Bank
     bankName: "",
@@ -463,6 +465,7 @@ experience:
 
 
           qualification: coach.qualification || "",
+          salary: coach.salary ?? "",
 
           bankName: coach.bankDetails?.bankName || "",
           branchName: coach.bankDetails?.branchName || "",
@@ -663,6 +666,22 @@ experience:
       finalValue = value
         .replace(/\D/g, "")
         .slice(0, 2);
+    }
+
+    // Salary: allow digits and decimal point (up to 2 decimals)
+    if (name === "salary") {
+      finalValue = value.replace(/[^0-9.]/g, "");
+
+      const parts = finalValue.split(".");
+
+      if (parts.length > 2) {
+        finalValue = `${parts[0]}.${parts.slice(1).join("")}`;
+      }
+
+      if (finalValue.includes(".")) {
+        const [whole, decimal] = finalValue.split(".");
+        finalValue = `${whole}.${decimal.slice(0, 2)}`;
+      }
     }
 
     // IFSC uppercase
@@ -961,6 +980,27 @@ experience:
 
         if (val.length > 100) {
           return "Qualification cannot exceed 100 characters";
+        }
+
+        return "";
+
+
+      // -------------------------------------------------------
+      // SALARY
+      // -------------------------------------------------------
+
+      case "salary":
+
+        if (val === "") {
+          return "Salary is required";
+        }
+
+        if (!/^\\d+(\\.\\d{1,2})?$/.test(val)) {
+          return "Salary must be a valid amount with up to 2 decimal places";
+        }
+
+        if (Number(val) <= 0) {
+          return "Salary must be greater than 0";
         }
 
         return "";
@@ -1418,6 +1458,7 @@ const resetCoachForm = () => {
 
     experience: "",
     qualification: "",
+    salary: "",
 
     bankName: "",
     branchName: "",
@@ -1490,6 +1531,7 @@ const resetCoachForm = () => {
           "address",
           "experience",
           "qualification",
+          "salary",
           "bankName",
           "branchName",
           "accountHolderName",
@@ -1642,6 +1684,11 @@ payload.append(
       payload.append(
         "qualification",
         formData.qualification.trim()
+      );
+
+      payload.append(
+        "salary",
+        formData.salary
       );
 
 
@@ -3163,6 +3210,31 @@ const handleRemoveDocument = (config) => {
                 />
 
                 <FieldError field="qualification" />
+
+              </div>
+
+
+              {/* SALARY */}
+
+              <div>
+
+                <label className="field-label">
+                  MONTHLY SALARY *
+                </label>
+
+                <input
+                  ref={fieldRefs.salary}
+                  type="text"
+                  name="salary"
+                  value={formData.salary}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  inputMode="decimal"
+                  className={inputClass("salary")}
+                  placeholder="e.g. 25000"
+                />
+
+                <FieldError field="salary" />
 
               </div>
 

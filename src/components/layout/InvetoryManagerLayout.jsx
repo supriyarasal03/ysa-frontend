@@ -11,6 +11,7 @@ import {
   CalendarDays,
   History,
   LogOut,
+  Calendar,
   Menu,
   Bell,
   X,
@@ -410,6 +411,12 @@ const InventoryManagerLayout = () => {
     },
 
    
+    
+    {
+  name: "Leave",
+  path: "/receptionist/leave",
+  icon: Calendar,
+}
 
   ];
 
