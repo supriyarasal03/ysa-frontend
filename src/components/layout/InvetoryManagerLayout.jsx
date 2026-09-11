@@ -414,9 +414,22 @@ const InventoryManagerLayout = () => {
     
     {
   name: "Leave",
-  path: "/receptionist/leave",
+  path: "/inventoty/leave",
+  icon: Calendar,
+},
+
+
+
+    {
+  name: "Player Innventory Purcahse",
+  path: "innventory/player-inventoty-purcahse",
   icon: Calendar,
 }
+
+
+
+
+
 
   ];
 

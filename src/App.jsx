@@ -74,6 +74,7 @@ import StaffAttendance from "./Pages/admin/StaffAttendance";
 import LeaveRequest from "./Pages/leaveRequest/LeaveRequest";
 import LeaveRequests from "./Pages/admin/LeaveRequests";
 import HistoryBatches from "./Pages/coach/HistoryBatches";
+import PlayerInventoryPurchase from "./Pages/innventoty-manager/PlayerInventoryPurchase";
 
 function App() {
   return (
@@ -82,7 +83,7 @@ function App() {
         {/* PUBLIC */}
         <Route path="/" element={<HomePage />} />
         <Route path="/home" element={<HomePage />} />
-       
+
         <Route path="/sports" element={<AllSports />} />
 
         {/* AUTH */}
@@ -100,16 +101,16 @@ function App() {
         <Route element={<AdminLayout />}>
           <Route path="/admin" element={<AdminDashboar />} />
 
-          <Route path="/admin/staff-attendance" element={<StaffAttendance/>}/>
+          <Route path="/admin/staff-attendance" element={<StaffAttendance />} />
 
-          <Route path="/admin/leave-requests" element={<LeaveRequests/>}/>
+          <Route path="/admin/leave-requests" element={<LeaveRequests />} />
 
-         
+
 
           <Route path="/admin/staff-management" element={<StaffManagement />} />
           <Route path="/staff-form" element={<StaffForm />} />
           <Route path="/staff-form/:id" element={<StaffForm />} />
-             <Route path="/admin/receptionist-attendance" element={<ReceptionistAttendanceManagmnet/>}/>
+          <Route path="/admin/receptionist-attendance" element={<ReceptionistAttendanceManagmnet />} />
 
           <Route path="/admin/sport-management" element={<SportManagmnet />} />
           <Route path="/sport-form" element={<SportForm />} />
@@ -119,7 +120,7 @@ function App() {
           <Route path="/coach-form" element={<CoachForm />} />
           <Route path="/coach-form/:id" element={<CoachForm />} />
 
-         
+
 
           <Route path="/admin/batch-managmnet" element={<BatchManagment />} />
           <Route path="/batch-form" element={<BatchForm />} />
@@ -128,7 +129,7 @@ function App() {
         </Route>
 
         {/* OTHER STAFF DASHBOARDS */}
-        
+
         <Route path="/cleaningStaff" element={<CleaningStaffDashboard />} />
 
 
@@ -137,39 +138,45 @@ function App() {
 
 
 
-          {/* InventoryManager  */}
+        {/* InventoryManager  */}
 
 
         {/* Inventory Manager */}
 
-<Route element={<InventoryManagerLayout />}>
-  
-  <Route
-    path="/innventory-manager"
-    element={<InnventoryManagerDashboard />}
-  />
+        <Route element={<InventoryManagerLayout />}>
+
+
+        <Route path="innventory/player-inventoty-purcahse" element={<PlayerInventoryPurchase/>} />
+
+
+         <Route path="/inventoty/leave" element={<LeaveRequest />} />
+
+          <Route
+            path="/innventory-manager"
+            element={<InnventoryManagerDashboard />}
+          />
 
 
 
-  <Route
-    path="/inventory"
-    element={<InventoryManagement />}
-  />
+          <Route
+            path="/inventory"
+            element={<InventoryManagement />}
+          />
 
-  <Route
-    path="/inventory/add"
-    element={<AddInventory />}
-  />
+          <Route
+            path="/inventory/add"
+            element={<AddInventory />}
+          />
 
-  <Route
-    path="/inventory/receive-stock"
-    element={<ReceiveStock />}
-  />
+          <Route
+            path="/inventory/receive-stock"
+            element={<ReceiveStock />}
+          />
 
 
-  <Route path="/innventory/history"    element={<InventoryTransactionHistory/>}  />
+          <Route path="/innventory/history" element={<InventoryTransactionHistory />} />
 
-</Route>
+        </Route>
 
 
 
@@ -185,9 +192,9 @@ function App() {
           <Route path="/receptionist" element={<ReceptionistDashboard />} />
           <Route path="/receptionist/dashboard" element={<ReceptionistDashboard />} />
 
-          <Route path="/receptionist/leave" element={<LeaveRequest/>} />
+          <Route path="/receptionist/leave" element={<LeaveRequest />} />
 
-          
+
 
           {/* Players */}
           <Route path="/receptionist/players" element={<PlayerManagement />} />
@@ -207,18 +214,18 @@ function App() {
 
 
 
-            
 
-            <Route element={<CoachLayout/>} >
-            <Route path="/coach" element={<CoachDashboard/>}/>
-            <Route path="/admin/history-batches" element={<HistoryBatches/>}/>
-               <Route path="/coach/leave-requests" element={<LeaveRequest/>}/>
-            <Route path="/coach/player-attendance" element={<StudentsAttendance/>} />
-            <Route path="/coach/Playee-attendance-history" element={<PlayerAttendanceHistory/>} />
 
-         
-            
-            </Route>
+        <Route element={<CoachLayout />} >
+          <Route path="/coach" element={<CoachDashboard />} />
+          <Route path="/admin/history-batches" element={<HistoryBatches />} />
+          <Route path="/coach/leave-requests" element={<LeaveRequest />} />
+          <Route path="/coach/player-attendance" element={<StudentsAttendance />} />
+          <Route path="/coach/Playee-attendance-history" element={<PlayerAttendanceHistory />} />
+
+
+
+        </Route>
 
 
 

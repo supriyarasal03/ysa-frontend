@@ -369,8 +369,10 @@ const fields = [
         next.aadhaarBack = "Aadhaar back document is required.";
       if (!formData.panCard)
         next.panCard = "PAN card document is required.";
-
-if (!["RECEPTIONIST", "CLEANING_STAFF"].includes(formData.role)) {
+if (formData.role === "CLEANING_STAFF") {
+  // Degree Certificate and Resume are optional
+} else {
+  // Degree Certificate and Resume are mandatory
   if (!formData.degreeCertificate)
     next.degreeCertificate = "Degree certificate is required.";
 
@@ -378,7 +380,13 @@ if (!["RECEPTIONIST", "CLEANING_STAFF"].includes(formData.role)) {
     next.resume = "Resume is required.";
 }
 
+
+
+
+
     }
+
+    
 
 
 setErrors(next);
@@ -630,10 +638,12 @@ ifscCode: staff.ifscCode || "",
     let { value } = event.target;
 
 
-    if (
-  name === "role" &&
-  ["RECEPTIONIST", "CLEANING_STAFF"].includes(value)
-) {
+
+
+
+
+
+if (name === "role" && value === "CLEANING_STAFF") {
   setFormData((prev) => ({
     ...prev,
     degreeCertificate: null,
@@ -653,6 +663,14 @@ ifscCode: staff.ifscCode || "",
     return next;
   });
 }
+
+
+
+
+
+
+
+
 
 
 if (
@@ -1365,13 +1383,18 @@ setTimeout(() => {
               <div className="p-5 md:p-6">
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
 
-                {DOCUMENTS
+
+{DOCUMENTS
   .filter(
     (doc) =>
-      !["RECEPTIONIST", "CLEANING_STAFF"].includes(formData.role) ||
+      formData.role !== "CLEANING_STAFF" ||
       !["degreeCertificate", "resume"].includes(doc.key)
   )
   .map((doc) => (
+
+
+
+
 
 
                     <div

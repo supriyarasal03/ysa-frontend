@@ -868,6 +868,39 @@ const installmentAmounts = useMemo(() => {
     }
 
 
+
+
+    // Parent / Guardian Name is required for every player.
+if (!form.parentName.trim()) {
+  next.parentName = "Parent / Guardian name is required.";
+} else if (
+  form.parentName.trim().length < 3 ||
+  form.parentName.trim().length > 30
+) {
+  next.parentName =
+    "Parent / Guardian name must be between 3 and 30 characters.";
+} else if (!nameRegex.test(form.parentName.trim())) {
+  next.parentName =
+    "Parent / Guardian name can contain only letters and spaces.";
+}
+
+
+
+if (!form.parentMobileNo.trim()) {
+  next.parentMobileNo = "Parent mobile number is required.";
+} else if (!mobileRegex.test(form.parentMobileNo.trim())) {
+  next.parentMobileNo =
+    "Enter a valid 10-digit parent mobile number.";
+}
+
+if (!form.parentEmail.trim()) {
+  next.parentEmail = "Parent email is required.";
+} else if (!emailRegex.test(form.parentEmail.trim())) {
+  next.parentEmail =
+    "Enter a valid parent email address.";
+}
+
+
 if (!isEdit) {
   if (!form.sportId) next.sportId = "Sport is required.";
   if (!form.batchId) next.batchId = "Batch is required.";
@@ -2165,49 +2198,125 @@ data.append(
                          
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className={fieldLabel}>Player Mobile *</label>
-                            <input
-                              name="playerMobileNo"
-                              value={form.playerMobileNo}
-                              onChange={handleChange}
-                              maxLength={10}
-                              inputMode="numeric"
-                              placeholder="10-digit mobile number"
-                              className={inputClass("playerMobileNo")}
-                            />
-                            {errorText("playerMobileNo")}
-                          </div>
 
-                          <div>
-                            <label className={fieldLabel}>Player Email *</label>
-                            <input
-                              name="playerEmail"
-                              type="email"
-                              value={form.playerEmail}
-                              onChange={handleChange}
-                              placeholder="player@example.com"
-                              className={inputClass("playerEmail")}
-                            />
-                            {errorText("playerEmail")}
-                          </div>
 
-                          <div className="md:col-span-2">
-                            <label className={fieldLabel}>Parent / Guardian Name *</label>
-                            <input
-                              name="parentName"
-                              value={form.parentName}
-                              onChange={handleChange}
-                              placeholder="Enter parent / guardian name"
-                              className={inputClass("parentName")}
-                            />
-                            <p className="text-[11px] text-slate-400 mt-1">
-                              Required by the player record as guardian / emergency contact information.
-                            </p>
-                            {errorText("parentName")}
-                          </div>
-                        </div>
+
+
+
+
+
+
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+  {/* PLAYER MOBILE */}
+  <div>
+    <label className={fieldLabel}>
+      Player Mobile *
+    </label>
+
+    <input
+      name="playerMobileNo"
+      value={form.playerMobileNo}
+      onChange={handleChange}
+      maxLength={10}
+      inputMode="numeric"
+      placeholder="10-digit mobile number"
+      className={inputClass("playerMobileNo")}
+    />
+
+    {errorText("playerMobileNo")}
+  </div>
+
+
+  {/* PLAYER EMAIL */}
+  <div>
+    <label className={fieldLabel}>
+      Player Email *
+    </label>
+
+    <input
+      name="playerEmail"
+      type="email"
+      value={form.playerEmail}
+      onChange={handleChange}
+      placeholder="player@example.com"
+      className={inputClass("playerEmail")}
+    />
+
+    {errorText("playerEmail")}
+  </div>
+
+
+  {/* PARENT NAME */}
+  <div>
+    <label className={fieldLabel}>
+      Parent / Guardian Name *
+    </label>
+
+    <input
+      name="parentName"
+      value={form.parentName}
+      onChange={handleChange}
+      placeholder="Enter parent / guardian name"
+      className={inputClass("parentName")}
+    />
+
+    {errorText("parentName")}
+  </div>
+
+
+  {/* PARENT MOBILE */}
+  <div>
+    <label className={fieldLabel}>
+      Parent Mobile *
+    </label>
+
+    <input
+      name="parentMobileNo"
+      value={form.parentMobileNo}
+      onChange={handleChange}
+      maxLength={10}
+      inputMode="numeric"
+      placeholder="10-digit mobile number"
+      className={inputClass("parentMobileNo")}
+    />
+
+    {errorText("parentMobileNo")}
+  </div>
+
+
+  {/* PARENT EMAIL */}
+  <div className="md:col-span-2">
+    <label className={fieldLabel}>
+      Parent Email *
+    </label>
+
+    <input
+      name="parentEmail"
+      type="email"
+      value={form.parentEmail}
+      onChange={handleChange}
+      placeholder="parent@example.com"
+      className={inputClass("parentEmail")}
+    />
+
+    {errorText("parentEmail")}
+  </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
                       </div>
                     ) : (
                       <div className="rounded-2xl border border-violet-200 bg-violet-50/20 p-4 sm:p-5">
