@@ -45,12 +45,13 @@ const Login = () => {
 
         if (role === "ADMIN") navigate("/admin");
 
-        else if (role === "COACH") navigate("/coach");
+        else if (role === "COACH") navigate("/coach/player-attendance");
 
         else if (role === "RECEPTIONIST") navigate("/receptionist");
-        else if (role=== "INVENTORY_MANAGER") navigate("/innventory-manager");
-          else if (role=== "CLEANING_STAFF") navigate("cleaningStaff");
-        else if (role === "PLAYER") navigate("/player-dashboard");
+        else if (role === "INVENTORY_MANAGER") navigate("/innventory-manager");
+        else if (role === "CLEANING_STAFF") navigate("cleaningStaff");
+        else if (role === "PLAYER") navigate("/player/attendance");
+        else if (role === "PARENT") navigate("/parent");
         else setError("Unknown role received");
       } else {
         setError(response.message || "Login failed");
@@ -64,7 +65,7 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex">
-      
+
       {/* ================= LEFT SIDE - BRANDING ================= */}
       <div className="hidden lg:flex w-1/2 relative bg-gradient-to-br from-blue-900 via-blue-800 to-indigo-900 overflow-hidden">
         {/* Background Pattern */}
@@ -77,7 +78,7 @@ const Login = () => {
 
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-center items-center text-center px-12 text-white w-full">
-          
+
           {/* Logo */}
           <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center mb-6 border border-white/20">
             <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -116,7 +117,7 @@ const Login = () => {
           </div>
 
           <div className="bg-white rounded-2xl shadow-xl p-8 md:p-10 border border-gray-100">
-            
+
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
               <p className="text-gray-500 mt-1">Please login to your account</p>
@@ -133,7 +134,7 @@ const Login = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              
+
               {/* Username */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">

@@ -387,11 +387,7 @@ const CoachLayout = () => {
 
   const navigationItems = [
 
-    {
-      name: "Dashboard",
-      path: "/coach",
-      icon: LayoutDashboard,
-    },
+    
 
     
 
@@ -422,7 +418,7 @@ const CoachLayout = () => {
 {
   name:"History Batches",
 
-  path:"/admin/history-batches",
+  path:"/coach/history-batches",
   icon:Calendar,
 
 }

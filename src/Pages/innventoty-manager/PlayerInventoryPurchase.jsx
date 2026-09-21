@@ -10,6 +10,7 @@ import {
   getPurchasePlayers,
   getPurchaseInventory,
   purchaseInventory,
+  generateUpiQr,
 } from "./playerInventoryPurchaseApi";
 
 const PlayerInventoryPurchase = () => {
@@ -33,6 +34,17 @@ const PlayerInventoryPurchase = () => {
   const [quantity, setQuantity] =
     useState("1");
 
+  const [paymentMethod, setPaymentMethod] =
+    useState("");
+
+
+  // =========================================================
+  // UPI SCREENSHOT
+  // =========================================================
+
+  const [upiScreenshot, setUpiScreenshot] =
+    useState(null);
+
 
   // =========================================================
   // DATA
@@ -49,6 +61,17 @@ const PlayerInventoryPurchase = () => {
 
   const [inventory, setInventory] =
     useState([]);
+
+
+  // =========================================================
+  // UPI QR
+  // =========================================================
+
+  const [upiQr, setUpiQr] =
+    useState(null);
+
+  const [upiQrLoading, setUpiQrLoading] =
+    useState(false);
 
 
   // =========================================================
@@ -138,12 +161,13 @@ const PlayerInventoryPurchase = () => {
 
     setSportId(value);
 
-    // Reset dependent fields
-
     setBatchId("");
     setPlayerId("");
     setInventoryId("");
     setQuantity("1");
+    setPaymentMethod("");
+    setUpiScreenshot(null);
+    setUpiQr(null);
 
     setBatches([]);
     setPlayers([]);
@@ -155,6 +179,11 @@ const PlayerInventoryPurchase = () => {
     if (!value) {
       return;
     }
+
+
+    // -------------------------------------------------------
+    // LOAD ONGOING BATCHES
+    // -------------------------------------------------------
 
     try {
 
@@ -183,7 +212,9 @@ const PlayerInventoryPurchase = () => {
     }
 
 
-    // Load inventory for selected sport
+    // -------------------------------------------------------
+    // LOAD INVENTORY
+    // -------------------------------------------------------
 
     try {
 
@@ -228,6 +259,9 @@ const PlayerInventoryPurchase = () => {
     setBatchId(value);
 
     setPlayerId("");
+    setPaymentMethod("");
+    setUpiScreenshot(null);
+    setUpiQr(null);
 
     setPlayers([]);
 
@@ -323,6 +357,64 @@ const PlayerInventoryPurchase = () => {
 
 
   // =========================================================
+  // GENERATE UPI QR
+  // =========================================================
+
+  const loadUpiQr = async () => {
+
+    if (
+      paymentMethod !== "UPI" ||
+      totalAmount <= 0
+    ) {
+
+      setUpiQr(null);
+
+      return;
+
+    }
+
+    try {
+
+      setUpiQrLoading(true);
+      setError("");
+
+      const response =
+        await generateUpiQr(
+          totalAmount.toFixed(2)
+        );
+
+      if (!response?.success) {
+
+        throw new Error(
+          response?.message ||
+          "Unable to generate UPI QR."
+        );
+
+      }
+
+      setUpiQr(
+        response?.data || null
+      );
+
+    } catch (err) {
+
+      setUpiQr(null);
+
+      setError(
+        err?.message ||
+        "Unable to generate UPI QR."
+      );
+
+    } finally {
+
+      setUpiQrLoading(false);
+
+    }
+
+  };
+
+
+  // =========================================================
   // INVENTORY CHANGE
   // =========================================================
 
@@ -335,6 +427,9 @@ const PlayerInventoryPurchase = () => {
     );
 
     setQuantity("1");
+    setPaymentMethod("");
+    setUpiScreenshot(null);
+    setUpiQr(null);
 
     setError("");
     setSuccessMessage("");
@@ -357,8 +452,131 @@ const PlayerInventoryPurchase = () => {
 
     setQuantity(value);
 
+    setUpiScreenshot(null);
+    setUpiQr(null);
+
     setError("");
     setSuccessMessage("");
+
+  };
+
+
+  // =========================================================
+  // PAYMENT METHOD CHANGE
+  // =========================================================
+
+  const handlePaymentMethodChange = (
+    event
+  ) => {
+
+    const value =
+      event.target.value;
+
+    setPaymentMethod(value);
+
+    setError("");
+    setSuccessMessage("");
+
+    // Clear screenshot when switching to Cash
+    if (value === "CASH") {
+
+      setUpiScreenshot(null);
+      setUpiQr(null);
+
+    }
+
+  };
+
+
+  // =========================================================
+  // GENERATE QR WHEN UPI + TOTAL CHANGES
+  // =========================================================
+
+  useEffect(() => {
+
+    if (
+      paymentMethod === "UPI" &&
+      totalAmount > 0
+    ) {
+
+      loadUpiQr();
+
+    } else {
+
+      setUpiQr(null);
+
+    }
+
+  }, [
+    paymentMethod,
+    totalAmount,
+  ]);
+
+
+  // =========================================================
+  // UPI SCREENSHOT CHANGE
+  // =========================================================
+
+  const handleUpiScreenshotChange = (
+    event
+  ) => {
+
+    const file =
+      event.target.files?.[0];
+
+    setError("");
+
+    if (!file) {
+
+      setUpiScreenshot(null);
+
+      return;
+
+    }
+
+
+    // -------------------------------------------------------
+    // FILE TYPE VALIDATION
+    // -------------------------------------------------------
+
+    if (!file.type.startsWith("image/")) {
+
+      setUpiScreenshot(null);
+
+      event.target.value = "";
+
+      setError(
+        "Please upload a valid payment screenshot image."
+      );
+
+      return;
+
+    }
+
+
+    // -------------------------------------------------------
+    // FILE SIZE VALIDATION
+    // -------------------------------------------------------
+
+    const maxSize =
+      5 * 1024 * 1024;
+
+    if (file.size > maxSize) {
+
+      setUpiScreenshot(null);
+
+      event.target.value = "";
+
+      setError(
+        "Payment screenshot must be less than 5 MB."
+      );
+
+      return;
+
+    }
+
+
+    setUpiScreenshot(file);
 
   };
 
@@ -440,6 +658,40 @@ const PlayerInventoryPurchase = () => {
 
     }
 
+
+    // -------------------------------------------------------
+    // PAYMENT METHOD
+    // -------------------------------------------------------
+
+    if (!paymentMethod) {
+
+      setError(
+        "Please select a payment method."
+      );
+
+      return false;
+
+    }
+
+
+    // -------------------------------------------------------
+    // UPI SCREENSHOT
+    // -------------------------------------------------------
+
+    if (
+      paymentMethod === "UPI" &&
+      !upiScreenshot
+    ) {
+
+      setError(
+        "Please upload the UPI payment screenshot."
+      );
+
+      return false;
+
+    }
+
+
     return true;
 
   };
@@ -466,18 +718,44 @@ const PlayerInventoryPurchase = () => {
 
       setPurchaseLoading(true);
 
+
+      // =====================================================
+      // PURCHASE PAYLOAD
+      // =====================================================
+
       const payload = {
-  sportId: Number(sportId),
-  batchId: Number(batchId),
-  playerId: Number(playerId),
-  inventoryId: Number(inventoryId),
-  quantity: Number(quantity),
-};
+
+        sportId:
+          Number(sportId),
+
+        batchId:
+          Number(batchId),
+
+        playerId:
+          Number(playerId),
+
+        inventoryId:
+          Number(inventoryId),
+
+        quantity:
+          Number(quantity),
+
+        paymentMethod:
+          paymentMethod,
+
+      };
+
+
+      console.log(
+        "Inventory Purchase Payload:",
+        payload
+      );
 
 
       const response =
         await purchaseInventory(
-          payload
+          payload,
+          upiScreenshot
         );
 
 
@@ -491,15 +769,19 @@ const PlayerInventoryPurchase = () => {
       }
 
 
+      // =====================================================
+      // SUCCESS
+      // =====================================================
+
       setSuccessMessage(
         response?.message ||
         "Inventory purchased successfully."
       );
 
 
-      // ------------------------------------------------------
+      // =====================================================
       // UPDATE DISPLAYED STOCK
-      // ------------------------------------------------------
+      // =====================================================
 
       const purchasedQuantity =
         Number(quantity);
@@ -519,12 +801,14 @@ const PlayerInventoryPurchase = () => {
 
               }
 
+
               const currentStock =
                 Number(
                   item.currentStock ??
                   item.stock ??
                   0
                 );
+
 
               return {
 
@@ -544,11 +828,20 @@ const PlayerInventoryPurchase = () => {
       );
 
 
-      // Reset purchase-specific fields
+      // =====================================================
+      // RESET PURCHASE FIELDS
+      // =====================================================
 
       setInventoryId("");
 
       setQuantity("1");
+
+      setPaymentMethod("");
+
+      setUpiScreenshot(null);
+
+      setUpiQr(null);
+
 
     } catch (err) {
 
@@ -581,6 +874,12 @@ const PlayerInventoryPurchase = () => {
     setInventoryId("");
 
     setQuantity("1");
+
+    setPaymentMethod("");
+
+    setUpiScreenshot(null);
+
+    setUpiQr(null);
 
     setBatches([]);
 
@@ -1081,7 +1380,6 @@ const PlayerInventoryPurchase = () => {
 
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
 
-
                 {/* ITEM */}
 
                 <div>
@@ -1152,7 +1450,6 @@ const PlayerInventoryPurchase = () => {
 
             <div className="mt-7 grid grid-cols-1 gap-6 md:grid-cols-2">
 
-
               {/* QUANTITY */}
 
               <div>
@@ -1219,6 +1516,264 @@ const PlayerInventoryPurchase = () => {
 
 
           {/* ===================================================
+              PAYMENT METHOD
+          =================================================== */}
+
+          {selectedInventory && (
+
+            <div className="mt-7">
+
+              <label className="mb-3 block text-sm font-semibold text-[#415d79]">
+
+                Payment Method{" "}
+
+                <span className="text-red-500">
+                  *
+                </span>
+
+              </label>
+
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+                {/* CASH */}
+
+                <label
+                  className={`flex cursor-pointer items-center gap-3 rounded-xl border px-5 py-4 transition ${
+                    paymentMethod === "CASH"
+                      ? "border-[#0787c8] bg-[#f0f9ff]"
+                      : "border-[#d5e0eb] bg-white hover:bg-[#f8fafc]"
+                  }`}
+                >
+
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="CASH"
+                    checked={
+                      paymentMethod ===
+                      "CASH"
+                    }
+                    onChange={
+                      handlePaymentMethodChange
+                    }
+                    disabled={
+                      purchaseLoading
+                    }
+                    className="h-4 w-4"
+                  />
+
+                  <div>
+
+                    <p className="font-semibold text-[#17385c]">
+                      Cash
+                    </p>
+
+                    <p className="mt-1 text-xs text-[#8295aa]">
+                      Payment received in cash
+                    </p>
+
+                  </div>
+
+                </label>
+
+
+                {/* UPI */}
+
+                <label
+                  className={`flex cursor-pointer items-center gap-3 rounded-xl border px-5 py-4 transition ${
+                    paymentMethod === "UPI"
+                      ? "border-[#0787c8] bg-[#f0f9ff]"
+                      : "border-[#d5e0eb] bg-white hover:bg-[#f8fafc]"
+                  }`}
+                >
+
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="UPI"
+                    checked={
+                      paymentMethod ===
+                      "UPI"
+                    }
+                    onChange={
+                      handlePaymentMethodChange
+                    }
+                    disabled={
+                      purchaseLoading
+                    }
+                    className="h-4 w-4"
+                  />
+
+                  <div>
+
+                    <p className="font-semibold text-[#17385c]">
+                      UPI
+                    </p>
+
+                    <p className="mt-1 text-xs text-[#8295aa]">
+                      Payment received through UPI
+                    </p>
+
+                  </div>
+
+                </label>
+
+              </div>
+
+
+              {/* =================================================
+                  UPI QR CODE
+              ================================================= */}
+
+              {paymentMethod === "UPI" && (
+
+                <div className="mt-6 flex flex-col items-center rounded-2xl border border-[#dce5ed] bg-[#f8fafc] p-6">
+
+                  <h3 className="text-lg font-bold text-[#172b4d]">
+                    Scan to Pay
+                  </h3>
+
+                  <p className="mt-1 text-sm text-[#7b90a7]">
+                    Scan this QR code using any UPI app.
+                  </p>
+
+
+                  {upiQrLoading ? (
+
+                    <div className="mt-5 flex h-[260px] w-[260px] items-center justify-center rounded-xl border border-[#dce5ed] bg-white">
+
+                      <p className="text-sm font-medium text-[#66809f]">
+                        Generating QR...
+                      </p>
+
+                    </div>
+
+                  ) : upiQr?.qrCodeBase64 ? (
+
+                    <>
+
+                      <div className="mt-5 rounded-xl border border-[#dce5ed] bg-white p-4 shadow-sm">
+
+                        <img
+                          src={`data:image/png;base64,${upiQr.qrCodeBase64}`}
+                          alt="UPI Payment QR Code"
+                          className="h-[300px] w-[300px]"
+                        />
+
+                      </div>
+
+
+                      <p className="mt-4 text-xl font-bold text-green-600">
+
+                        ₹
+                        {Number(
+                          totalAmount
+                        ).toLocaleString(
+                          "en-IN",
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+
+                      </p>
+
+
+                      {upiQr.upiId && (
+
+                        <p className="mt-1 text-sm text-[#66809f]">
+
+                          UPI ID:{" "}
+
+                          <span className="font-semibold text-[#344b66]">
+                            {upiQr.upiId}
+                          </span>
+
+                        </p>
+
+                      )}
+
+                      <p className="mt-2 text-xs text-[#8a9db1]">
+                        Please verify the payment before completing the purchase.
+                      </p>
+
+                    </>
+
+                  ) : (
+
+                    <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-medium text-red-600">
+
+                      Unable to generate UPI QR.
+
+                    </div>
+
+                  )}
+
+
+                  {/* =================================================
+                      UPI SCREENSHOT UPLOAD
+                  ================================================= */}
+
+                  <div className="mt-7 w-full max-w-[520px]">
+
+                    <label className="mb-2 block text-sm font-semibold text-[#415d79]">
+
+                      Payment Screenshot{" "}
+
+                      <span className="text-red-500">
+                        *
+                      </span>
+
+                    </label>
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={
+                        handleUpiScreenshotChange
+                      }
+                      disabled={
+                        purchaseLoading
+                      }
+                      className="block w-full cursor-pointer rounded-xl border border-[#d5e0eb] bg-white px-4 py-3 text-sm text-[#344b66] file:mr-4 file:rounded-lg file:border-0 file:bg-[#0787c8] file:px-4 file:py-2 file:font-semibold file:text-white hover:file:bg-[#0678b3] disabled:cursor-not-allowed disabled:opacity-60"
+                    />
+
+                    <p className="mt-2 text-xs text-[#8a9db1]">
+                      Upload the UPI payment screenshot after completing the payment. Maximum size: 5 MB.
+                    </p>
+
+
+                    {/* FILE NAME */}
+
+                    {upiScreenshot && (
+
+                      <div className="mt-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+
+                        <p className="text-sm font-semibold text-green-700">
+                          Screenshot selected
+                        </p>
+
+                        <p className="mt-1 break-all text-xs text-green-600">
+                          {upiScreenshot.name}
+                        </p>
+
+                      </div>
+
+                    )}
+
+                  </div>
+
+                </div>
+
+              )}
+
+            </div>
+
+          )}
+
+
+          {/* ===================================================
               BUTTONS
           =================================================== */}
 
@@ -1244,7 +1799,12 @@ const PlayerInventoryPurchase = () => {
                 !batchId ||
                 !playerId ||
                 !inventoryId ||
-                !quantity
+                !quantity ||
+                !paymentMethod ||
+                (
+                  paymentMethod === "UPI" &&
+                  !upiScreenshot
+                )
               }
               className="h-12 min-w-[190px] rounded-xl bg-[#0787c8] px-7 font-semibold text-white shadow-md transition hover:bg-[#0678b3] disabled:cursor-not-allowed disabled:opacity-50"
             >

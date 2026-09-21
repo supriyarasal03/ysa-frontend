@@ -17,6 +17,7 @@ const handleApiError = (error, fallbackMessage) => {
   throw err;
 };
 
+
 // ==========================================================
 // GET SPORTS
 // ==========================================================
@@ -35,6 +36,7 @@ export const getPurchaseSports = async () => {
     );
   }
 };
+
 
 // ==========================================================
 // GET ONGOING BATCHES BY SPORT
@@ -56,6 +58,7 @@ export const getPurchaseBatches = async (
     );
   }
 };
+
 
 // ==========================================================
 // GET ACTIVE PLAYERS BY BATCH
@@ -79,6 +82,7 @@ export const getPurchasePlayers = async (
   }
 };
 
+
 // ==========================================================
 // GET ACTIVE INVENTORY BY SPORT
 // ==========================================================
@@ -100,20 +104,59 @@ export const getPurchaseInventory = async (
   }
 };
 
+
+// ==========================================================
+// GENERATE UPI QR
+// ==========================================================
+
+export const generateUpiQr = async (amount) => {
+  try {
+    const response = await api.get(
+      `/payment/upi-qr?amount=${amount}`
+    );
+
+    return response.data;
+  } catch (error) {
+    handleApiError(
+      error,
+      "Failed to generate UPI QR."
+    );
+  }
+};
+
+
 // ==========================================================
 // PURCHASE INVENTORY
 // ==========================================================
 
 export const purchaseInventory = async (
-  payload
+  payload,
+  upiScreenshot
 ) => {
   try {
+    const formData = new FormData();
+
+    // Purchase JSON
+    formData.append(
+      "purchase",
+      JSON.stringify(payload)
+    );
+
+    // UPI screenshot
+    if (upiScreenshot) {
+      formData.append(
+        "upiScreenshot",
+        upiScreenshot
+      );
+    }
+
     const response = await api.post(
       "/player-inventory-purchase",
-      payload
+      formData
     );
 
     return response.data;
+
   } catch (error) {
     handleApiError(
       error,

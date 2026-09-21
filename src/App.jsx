@@ -1,9 +1,14 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate
+} from "react-router-dom";
 
 // Dashboards
 import AdminDashboar from "./Pages/dashboard/AdminDashboar";
-import CoachDashboard from "./Pages/dashboard/CoachDashboard";
-import PlayerDashboard from "./Pages/dashboard/PlayerDashboard";
+
+
 import ParentDashboard from "./Pages/dashboard/ParentDashboard";
 
 // Public
@@ -75,6 +80,10 @@ import LeaveRequest from "./Pages/leaveRequest/LeaveRequest";
 import LeaveRequests from "./Pages/admin/LeaveRequests";
 import HistoryBatches from "./Pages/coach/HistoryBatches";
 import PlayerInventoryPurchase from "./Pages/innventoty-manager/PlayerInventoryPurchase";
+import ParentLayout from "./components/layout/ParentLayout";
+import ParentManagement from "./Pages/parent/ParentManagement";
+import PlayerLayout from "./components/layout/PlayerLayout";
+import PlayerSelfAttendance from "./Pages/player-dashboard/playerSelfAttendance";
 
 function App() {
   return (
@@ -93,8 +102,8 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* OTHER DASHBOARDS */}
-        <Route path="/coach-dashboard" element={<CoachDashboard />} />
-        <Route path="/player-dashboard" element={<PlayerDashboard />} />
+       
+       
         <Route path="/parent-dashboard" element={<ParentDashboard />} />
 
         {/* ADMIN */}
@@ -179,6 +188,18 @@ function App() {
         </Route>
 
 
+           
+
+           {/* Parent Dashboard */}
+
+           <Route element={<ParentLayout/>}>
+           <Route path="/parent"  element={<ParentDashboard/>} />
+           <Route path="/parent/students" element={<ParentManagement/>} />
+           
+           
+           </Route>
+
+
 
 
 
@@ -215,13 +236,22 @@ function App() {
 
 
 
+<Route element={<PlayerLayout/>} >
+<Route path="/player/attendance" element={<PlayerSelfAttendance/>}  />
+</Route>
+
+          
+
+
 
         <Route element={<CoachLayout />} >
-          <Route path="/coach" element={<CoachDashboard />} />
-          <Route path="/admin/history-batches" element={<HistoryBatches />} />
+        
+          <Route path="/coach/history-batches" element={<HistoryBatches />} />
           <Route path="/coach/leave-requests" element={<LeaveRequest />} />
           <Route path="/coach/player-attendance" element={<StudentsAttendance />} />
           <Route path="/coach/Playee-attendance-history" element={<PlayerAttendanceHistory />} />
+
+
 
 
 

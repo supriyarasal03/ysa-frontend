@@ -76,6 +76,7 @@ const StudentsAttendance = () => {
                     response?.message ||
                     "Unable to load batches."
                 );
+
             }
 
         } catch (err) {
@@ -88,7 +89,9 @@ const StudentsAttendance = () => {
         } finally {
 
             setLoadingBatches(false);
+
         }
+
     };
 
 
@@ -116,11 +119,13 @@ const StudentsAttendance = () => {
 
 
         await loadStudents(batchId);
+
     };
 
 
     // ==========================================================
     // LOAD STUDENTS
+    // ONLY UNDER 18 STUDENTS
     // ==========================================================
 
     const loadStudents = async (batchId) => {
@@ -138,8 +143,30 @@ const StudentsAttendance = () => {
 
             if (response?.success) {
 
+                const batchStudents =
+                    Array.isArray(response.data)
+                        ? response.data
+                        : [];
+
+
+                // =================================================
+                // ATTENDANCE RULE
+                //
+                // UNDER 18  -> COACH MARKS ATTENDANCE
+                // 18 OR ABOVE -> PLAYER MARKS OWN ATTENDANCE
+                // =================================================
+
+                const coachStudents =
+                    batchStudents.filter(
+                        (student) =>
+                            student.age !== null &&
+                            student.age !== undefined &&
+                            Number(student.age) < 18
+                    );
+
+
                 setStudents(
-                    response.data || []
+                    coachStudents
                 );
 
             } else {
@@ -150,6 +177,7 @@ const StudentsAttendance = () => {
                 );
 
                 setStudents([]);
+
             }
 
         } catch (err) {
@@ -164,7 +192,9 @@ const StudentsAttendance = () => {
         } finally {
 
             setLoadingStudents(false);
+
         }
+
     };
 
 
@@ -181,6 +211,7 @@ const StudentsAttendance = () => {
         await loadStudents(
             selectedBatchId
         );
+
     };
 
 
@@ -197,6 +228,7 @@ const StudentsAttendance = () => {
             err?.code === "ETIMEDOUT" ||
             err?.message === "Network Error"
         );
+
     };
 
 
@@ -209,6 +241,7 @@ const StudentsAttendance = () => {
         window.alert(
             "Please connect to Academy Wi-Fi."
         );
+
     };
 
 
@@ -224,6 +257,7 @@ const StudentsAttendance = () => {
             message ||
             "Unable to process attendance."
         );
+
     };
 
 
@@ -267,6 +301,7 @@ const StudentsAttendance = () => {
                     response?.message ||
                     "Unable to punch in student."
                 );
+
             }
 
         } catch (err) {
@@ -280,6 +315,7 @@ const StudentsAttendance = () => {
                 showAcademyWifiPopup();
 
                 return;
+
             }
 
 
@@ -295,7 +331,9 @@ const StudentsAttendance = () => {
         } finally {
 
             setProcessingStudentId(null);
+
         }
+
     };
 
 
@@ -339,6 +377,7 @@ const StudentsAttendance = () => {
                     response?.message ||
                     "Unable to punch out student."
                 );
+
             }
 
         } catch (err) {
@@ -352,6 +391,7 @@ const StudentsAttendance = () => {
                 showAcademyWifiPopup();
 
                 return;
+
             }
 
 
@@ -367,7 +407,9 @@ const StudentsAttendance = () => {
         } finally {
 
             setProcessingStudentId(null);
+
         }
+
     };
 
 
@@ -385,6 +427,7 @@ const StudentsAttendance = () => {
             0,
             5
         );
+
     };
 
 
@@ -406,6 +449,7 @@ const StudentsAttendance = () => {
             ) {
 
                 return "LATE MARKED";
+
             }
 
             if (
@@ -414,19 +458,25 @@ const StudentsAttendance = () => {
             ) {
 
                 return "ON TIME";
+
             }
 
             return "Present";
+
         }
+
 
         if (
             student.attendanceAllowedToday
         ) {
 
             return "Absent";
+
         }
 
+
         return "Not Available";
+
     };
 
 
@@ -448,7 +498,9 @@ const StudentsAttendance = () => {
                 ...statusStyle,
                 ...lateMarkedStyle
             };
+
         }
+
 
         if (
             student.attendanceMarkedToday &&
@@ -460,7 +512,9 @@ const StudentsAttendance = () => {
                 ...statusStyle,
                 ...onTimeStyle
             };
+
         }
+
 
         if (
             student.attendanceMarkedToday
@@ -470,7 +524,9 @@ const StudentsAttendance = () => {
                 ...statusStyle,
                 ...presentStyle
             };
+
         }
+
 
         if (
             student.attendanceAllowedToday
@@ -480,12 +536,15 @@ const StudentsAttendance = () => {
                 ...statusStyle,
                 ...absentStyle
             };
+
         }
+
 
         return {
             ...statusStyle,
             ...unavailableStyle
         };
+
     };
 
 
@@ -522,13 +581,16 @@ const StudentsAttendance = () => {
                     Students Attendance
                 </h2>
 
+
                 <p
                     style={{
                         margin: 0,
                         color: "#6b7280"
                     }}
                 >
-                    Mark and manage today's student attendance.
+                    Mark and manage today's
+                    attendance for students
+                    under 18.
                 </p>
 
             </div>
@@ -576,9 +638,11 @@ const StudentsAttendance = () => {
                 >
 
                     <option value="">
+
                         {loadingBatches
                             ? "Loading batches..."
                             : "Select Batch"}
+
                     </option>
 
 
@@ -657,7 +721,8 @@ const StudentsAttendance = () => {
                         color: "#6b7280"
                     }}
                 >
-                    Please select a batch to view students.
+                    Please select a batch to
+                    view students under 18.
                 </div>
 
             )}
@@ -767,8 +832,11 @@ const StudentsAttendance = () => {
                                                 color: "#6b7280"
                                             }}
                                         >
-                                            No active students found
-                                            in this batch.
+
+                                            No students under
+                                            18 found in this
+                                            batch.
+
                                         </td>
 
                                     </tr>
@@ -781,14 +849,6 @@ const StudentsAttendance = () => {
                                             const isProcessing =
                                                 processingStudentId ===
                                                 student.playerId;
-
-                                            const isUnder18 =
-                                                student.age !== null &&
-                                                student.age < 18;
-
-                                            const canMark =
-                                                student.coachCanMarkAttendance ===
-                                                true;
 
                                             const isMarked =
                                                 student.attendanceMarkedToday ===
@@ -811,12 +871,16 @@ const StudentsAttendance = () => {
                                                     }}
                                                 >
 
+                                                    {/* NUMBER */}
+
                                                     <td
                                                         style={tdStyle}
                                                     >
                                                         {index + 1}
                                                     </td>
 
+
+                                                    {/* STUDENT */}
 
                                                     <td
                                                         style={{
@@ -830,12 +894,16 @@ const StudentsAttendance = () => {
                                                     </td>
 
 
+                                                    {/* AGE */}
+
                                                     <td
                                                         style={tdStyle}
                                                     >
-                                                        {student.age ?? "-"}
+                                                        {student.age}
                                                     </td>
 
+
+                                                    {/* ATTENDANCE */}
 
                                                     <td
                                                         style={tdStyle}
@@ -853,24 +921,10 @@ const StudentsAttendance = () => {
                                                             )}
                                                         </span>
 
-
-                                                        {!isUnder18 &&
-                                                            student.age !== null && (
-
-                                                                <div
-                                                                    style={{
-                                                                        fontSize: "12px",
-                                                                        color: "#6b7280",
-                                                                        marginTop: "5px"
-                                                                    }}
-                                                                >
-                                                                    Student marked
-                                                                </div>
-
-                                                            )}
-
                                                     </td>
 
+
+                                                    {/* PUNCH IN */}
 
                                                     <td
                                                         style={tdStyle}
@@ -881,6 +935,8 @@ const StudentsAttendance = () => {
                                                     </td>
 
 
+                                                    {/* PUNCH OUT */}
+
                                                     <td
                                                         style={tdStyle}
                                                     >
@@ -890,17 +946,17 @@ const StudentsAttendance = () => {
                                                     </td>
 
 
+                                                    {/* ACTION */}
+
                                                     <td
                                                         style={tdStyle}
                                                     >
 
                                                         {/* --------------------------------
-                                                            UNDER 18 + TRAINING DAY
+                                                            PUNCH IN
                                                         --------------------------------- */}
 
-                                                        {isUnder18 &&
-                                                            canMark &&
-                                                            attendanceAllowed &&
+                                                        {attendanceAllowed &&
                                                             !isMarked && (
 
                                                                 <button
@@ -921,21 +977,21 @@ const StudentsAttendance = () => {
                                                                                 : 1
                                                                     }}
                                                                 >
+
                                                                     {isProcessing
                                                                         ? "Processing..."
                                                                         : "Punch In"}
+
                                                                 </button>
 
                                                             )}
 
 
                                                         {/* --------------------------------
-                                                            UNDER 18 + PUNCHED IN
+                                                            PUNCH OUT
                                                         --------------------------------- */}
 
-                                                        {isUnder18 &&
-                                                            canMark &&
-                                                            attendanceAllowed &&
+                                                        {attendanceAllowed &&
                                                             isMarked &&
                                                             !student.punchOutTime && (
 
@@ -957,9 +1013,11 @@ const StudentsAttendance = () => {
                                                                                 : 1
                                                                     }}
                                                                 >
+
                                                                     {isProcessing
                                                                         ? "Processing..."
                                                                         : "Punch Out"}
+
                                                                 </button>
 
                                                             )}
@@ -969,8 +1027,7 @@ const StudentsAttendance = () => {
                                                             COMPLETED
                                                         --------------------------------- */}
 
-                                                        {isUnder18 &&
-                                                            isMarked &&
+                                                        {isMarked &&
                                                             student.punchOutTime && (
 
                                                                 <span
@@ -986,29 +1043,10 @@ const StudentsAttendance = () => {
 
 
                                                         {/* --------------------------------
-                                                            18+
+                                                            NOT TRAINING DAY
                                                         --------------------------------- */}
 
-                                                        {!isUnder18 &&
-                                                            student.age !== null && (
-
-                                                                <span
-                                                                    style={{
-                                                                        color: "#6b7280",
-                                                                        fontSize: "13px"
-                                                                    }}
-                                                                >
-                                                                    Student marks
-                                                                </span>
-
-                                                            )}
-
-
-                                                        {/* --------------------------------
-                                                            NON TRAINING DAY
-                                                        --------------------------------- */}
-
-                                                        {(!attendanceAllowed) && (
+                                                        {!attendanceAllowed && (
 
                                                             <span
                                                                 style={{
@@ -1041,7 +1079,9 @@ const StudentsAttendance = () => {
                 )}
 
         </div>
+
     );
+
 };
 
 
