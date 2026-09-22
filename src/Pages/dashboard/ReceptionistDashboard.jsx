@@ -77,7 +77,9 @@ const ReceptionistDashboard = () => {
                 </p>
               </div>
               <div className={`p-3 rounded-xl ${stat.iconBg}`}>
-                <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
+               <div
+  className={`w-5 h-5 rounded ${stat.iconBg}`}
+></div>
               </div>
             </div>
           </div>

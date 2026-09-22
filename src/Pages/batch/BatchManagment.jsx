@@ -1087,229 +1087,187 @@ export default function BatchManagement() {
 
       </div>
 
-      {/* ======================================================
-          VIEW BATCH MODAL
-          ====================================================== */}
 
-      {viewBatch && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
 
-          <div className="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden">
+{/* ======================================================
+    VIEW BATCH MODAL
+====================================================== */}
 
-            {/* HEADER */}
-            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+{viewBatch && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+
+    <div
+      className="
+        w-full
+        max-w-5xl
+        max-h-[92vh]
+        bg-white
+        rounded-2xl
+        shadow-2xl
+        overflow-hidden
+        flex
+        flex-col
+      "
+    >
+
+      {/* ==================================================
+          HEADER
+      ================================================== */}
+
+      <div
+        className="
+          bg-[#0d172c]
+          px-8
+          py-6
+          flex
+          items-center
+          justify-between
+          shrink-0
+        "
+      >
+
+        <div>
+
+          <h2 className="text-2xl font-semibold text-white">
+            Batch Details
+          </h2>
+
+          <p className="text-sm text-slate-300 mt-1">
+            Complete information about this training batch
+          </p>
+
+        </div>
+
+
+        <button
+          type="button"
+          onClick={() =>
+            setViewBatch(null)
+          }
+          className="
+            w-10
+            h-10
+            rounded-full
+            flex
+            items-center
+            justify-center
+            text-white
+            hover:bg-white/10
+            transition
+          "
+        >
+          <X className="w-6 h-6" />
+        </button>
+
+      </div>
+
+
+      {/* ==================================================
+          SCROLLABLE CONTENT
+      ================================================== */}
+
+      <div className="overflow-y-auto">
+
+        <div className="p-7 lg:p-9">
+
+          {/* ==================================================
+              BATCH HEADER
+          ================================================== */}
+
+          <div
+            className="
+              flex
+              flex-col
+              md:flex-row
+              md:items-center
+              md:justify-between
+              gap-5
+              mb-8
+            "
+          >
+
+            <div className="flex items-center gap-5">
+
+              {/* BATCH ICON */}
+
+              <div
+                className="
+                  w-20
+                  h-20
+                  rounded-2xl
+                  bg-sky-50
+                  border
+                  border-sky-100
+                  flex
+                  items-center
+                  justify-center
+                  shrink-0
+                "
+              >
+
+                <Layers
+                  className="w-9 h-9 text-sky-600"
+                />
+
+              </div>
+
+
+              {/* BATCH NAME */}
 
               <div>
-                <h2 className="text-xl font-semibold text-slate-900">
-                  Batch Details
-                </h2>
+
+                <h1
+                  className="
+                    text-2xl
+                    lg:text-3xl
+                    font-bold
+                    text-slate-800
+                  "
+                >
+                  {viewBatch.batchName || "-"}
+                </h1>
+
 
                 <p className="text-sm text-slate-500 mt-1">
-                  Complete batch information
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setViewBatch(
-                    null
-                  )
-                }
-                className="p-2 rounded-lg hover:bg-slate-100"
-              >
-                <X className="w-5 h-5 text-slate-500" />
-              </button>
-
-            </div>
-
-            {/* CONTENT */}
-            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-5">
-
-              <div className="sm:col-span-2">
-                <p className="text-xs text-slate-400">
-                  Batch
+                  {getSportName(viewBatch)}
                 </p>
 
-                <p className="mt-1 font-semibold text-slate-900">
-                  {viewBatch.batchName ||
-                    "-"}
-                </p>
-              </div>
 
-              <div>
-                <p className="text-xs text-slate-400">
-                  Sport
-                </p>
-
-                <p className="mt-1 font-medium text-slate-800">
-                  {getSportName(
-                    viewBatch
-                  )}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-slate-400">
-                  Coach
-                </p>
-
-                <p className="mt-1 font-medium text-slate-800">
-                  {getCoachName(
-                    viewBatch
-                  )}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-slate-400">
-                  Start Date
-                </p>
-
-                <p className="mt-1 font-medium text-slate-800">
-                  {formatDate(
-                    viewBatch.startDate
-                  )}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-slate-400">
-                  End Date
-                </p>
-
-                <p className="mt-1 font-medium text-slate-800">
-                  {formatDate(
-                    viewBatch.endDate
-                  )}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-slate-400">
-                  Timing
-                </p>
-
-                <p className="mt-1 font-medium text-slate-800">
-                  {formatTiming(
-                    viewBatch
-                  )}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-slate-400">
-                  Training Days
-                </p>
-
-                <p className="mt-1 font-medium text-slate-800">
-                  {formatDays(
-                    viewBatch.trainingDays
-                  )}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-slate-400">
-                  Course Duration
-                </p>
-
-                <p className="mt-1 font-medium text-slate-800">
-                  {getCourseDuration(
-                    viewBatch
-                  )}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-slate-400">
-                  Capacity
-                </p>
-
-                <p className="mt-1 font-medium text-slate-800">
-                  {viewBatch.capacity ??
-                    "-"}{" "}
-                  players
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-slate-400">
-                  Fee
-                </p>
-
-                <p className="mt-1 font-medium text-slate-800">
-                  {formatMoney(
-                    viewBatch.fee
-                  )}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-slate-400">
-                  Discount
-                </p>
-
-                <p className="mt-1 font-medium text-slate-800">
-                  {formatMoney(
-                    viewBatch.discount ??
-                      0
-                  )}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-slate-400">
-                  Final Fee
-                </p>
-
-                <p className="mt-1 font-semibold text-emerald-600">
-                  {formatMoney(
-                    Math.max(
-                      0,
-                      Number(
-                        viewBatch.fee ||
-                          0
-                      ) -
-                        Number(
-                          viewBatch.discount ||
-                            0
-                        )
-                    )
-                  )}
-                </p>
-              </div>
-
-              {/* STATUS */}
-              <div className="sm:col-span-2">
-
-                <p className="text-xs text-slate-400">
-                  Status
-                </p>
+                {/* STATUS */}
 
                 <span
-                  className={`inline-flex mt-2 items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
-                    isActive(
-                      viewBatch
-                    )
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "bg-rose-50 text-rose-700"
-                  }`}
+                  className={`
+                    inline-flex
+                    items-center
+                    gap-1.5
+                    mt-3
+                    px-3
+                    py-1.5
+                    rounded-full
+                    text-xs
+                    font-semibold
+                    ${
+                      isActive(viewBatch)
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-rose-50 text-rose-700"
+                    }
+                  `}
                 >
 
                   <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      isActive(
-                        viewBatch
-                      )
-                        ? "bg-emerald-500"
-                        : "bg-rose-500"
-                    }`}
+                    className={`
+                      w-1.5
+                      h-1.5
+                      rounded-full
+                      ${
+                        isActive(viewBatch)
+                          ? "bg-emerald-500"
+                          : "bg-rose-500"
+                      }
+                    `}
                   />
 
-                  {getStatus(
-                    viewBatch
-                  )}
+                  {getStatus(viewBatch)}
 
                 </span>
 
@@ -1317,27 +1275,416 @@ export default function BatchManagement() {
 
             </div>
 
-            {/* FOOTER */}
-            <div className="px-6 py-4 border-t border-slate-100 flex justify-end">
 
-              <button
-                type="button"
-                onClick={() =>
-                  setViewBatch(
-                    null
-                  )
-                }
-                className="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-semibold hover:bg-slate-200"
-              >
-                Close
-              </button>
+            {/* CAPACITY */}
+
+            <div
+              className="
+                bg-slate-50
+                border
+                border-slate-200
+                rounded-xl
+                px-5
+                py-4
+                min-w-[170px]
+              "
+            >
+
+              <p className="text-xs text-slate-400">
+                Capacity
+              </p>
+
+              <p className="text-xl font-bold text-slate-800 mt-1">
+                {viewBatch.capacity ?? "-"}
+              </p>
+
+              <p className="text-xs text-slate-500">
+                Players
+              </p>
+
+            </div>
+
+          </div>
+
+
+          {/* ==================================================
+              BASIC INFORMATION
+          ================================================== */}
+
+          <div className="border border-slate-200 rounded-2xl overflow-hidden mb-6">
+
+            <div
+              className="
+                px-6
+                py-4
+                border-b
+                border-slate-200
+                bg-slate-50
+              "
+            >
+
+              <h3 className="text-base font-semibold text-slate-800">
+                Batch Information
+              </h3>
+
+            </div>
+
+
+            <div className="grid grid-cols-1 md:grid-cols-2">
+
+              {/* SPORT */}
+
+              <div className="p-6 border-b md:border-r border-slate-200">
+
+                <p className="text-xs text-slate-400 mb-2">
+                  Sport
+                </p>
+
+                <p className="text-base font-semibold text-slate-800">
+                  {getSportName(viewBatch)}
+                </p>
+
+              </div>
+
+
+              {/* COACH */}
+
+              <div className="p-6 border-b border-slate-200">
+
+                <p className="text-xs text-slate-400 mb-2">
+                  Coach
+                </p>
+
+                <p className="text-base font-semibold text-slate-800">
+                  {getCoachName(viewBatch)}
+                </p>
+
+              </div>
+
+
+              {/* START DATE */}
+
+              <div className="p-6 border-b md:border-r border-slate-200">
+
+                <p className="text-xs text-slate-400 mb-2">
+                  Start Date
+                </p>
+
+                <p className="text-base font-semibold text-slate-800">
+                  {formatDate(viewBatch.startDate)}
+                </p>
+
+              </div>
+
+
+              {/* END DATE */}
+
+              <div className="p-6 border-b border-slate-200">
+
+                <p className="text-xs text-slate-400 mb-2">
+                  End Date
+                </p>
+
+                <p className="text-base font-semibold text-slate-800">
+                  {formatDate(viewBatch.endDate)}
+                </p>
+
+              </div>
+
+
+              {/* TRAINING DAYS */}
+
+              <div className="p-6 md:border-r border-slate-200">
+
+                <p className="text-xs text-slate-400 mb-2">
+                  Training Days
+                </p>
+
+                <p className="text-base font-semibold text-slate-800">
+                  {formatDays(viewBatch.trainingDays)}
+                </p>
+
+              </div>
+
+
+              {/* TIMING */}
+
+              <div className="p-6">
+
+                <p className="text-xs text-slate-400 mb-2">
+                  Training Timing
+                </p>
+
+                <p className="text-base font-semibold text-slate-800">
+                  {formatTiming(viewBatch)}
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          {/* ==================================================
+              COURSE & FEE INFORMATION
+          ================================================== */}
+
+          <div className="border border-slate-200 rounded-2xl overflow-hidden mb-6">
+
+            <div
+              className="
+                px-6
+                py-4
+                border-b
+                border-slate-200
+                bg-slate-50
+              "
+            >
+
+              <h3 className="text-base font-semibold text-slate-800">
+                Course & Fee Information
+              </h3>
+
+            </div>
+
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+
+              {/* COURSE DURATION */}
+
+              <div className="p-6 border-b lg:border-b-0 lg:border-r border-slate-200">
+
+                <p className="text-xs text-slate-400 mb-2">
+                  Course Duration
+                </p>
+
+                <p className="text-base font-semibold text-slate-800">
+                  {getCourseDuration(viewBatch)}
+                </p>
+
+              </div>
+
+
+              {/* FEE */}
+
+              <div className="p-6 border-b lg:border-b-0 lg:border-r border-slate-200">
+
+                <p className="text-xs text-slate-400 mb-2">
+                  Fee
+                </p>
+
+                <p className="text-lg font-semibold text-slate-800">
+                  {formatMoney(viewBatch.fee)}
+                </p>
+
+              </div>
+
+
+              {/* DISCOUNT */}
+
+              <div className="p-6 border-b sm:border-b-0 sm:border-r lg:border-r border-slate-200">
+
+                <p className="text-xs text-slate-400 mb-2">
+                  Discount
+                </p>
+
+                <p className="text-lg font-semibold text-slate-700">
+                  {formatMoney(
+                    viewBatch.discount ?? 0
+                  )}
+                </p>
+
+              </div>
+
+
+              {/* FINAL FEE */}
+
+              <div className="p-6">
+
+                <p className="text-xs text-slate-400 mb-2">
+                  Final Fee
+                </p>
+
+                <p className="text-xl font-bold text-emerald-600">
+                  {formatMoney(
+                    Math.max(
+                      0,
+                      Number(
+                        viewBatch.fee || 0
+                      ) -
+                        Number(
+                          viewBatch.discount || 0
+                        )
+                    )
+                  )}
+                </p>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          {/* ==================================================
+              BATCH SCHEDULE SUMMARY
+          ================================================== */}
+
+          <div
+            className="
+              grid
+              grid-cols-1
+              md:grid-cols-3
+              gap-4
+            "
+          >
+
+            {/* DATE RANGE */}
+
+            <div
+              className="
+                bg-slate-50
+                border
+                border-slate-200
+                rounded-xl
+                p-5
+              "
+            >
+
+              <p className="text-xs text-slate-400">
+                Batch Period
+              </p>
+
+              <p className="text-sm font-semibold text-slate-800 mt-2">
+                {formatDate(viewBatch.startDate)}
+              </p>
+
+              <p className="text-xs text-slate-400 my-1">
+                to
+              </p>
+
+              <p className="text-sm font-semibold text-slate-800">
+                {formatDate(viewBatch.endDate)}
+              </p>
+
+            </div>
+
+
+            {/* TRAINING */}
+
+            <div
+              className="
+                bg-slate-50
+                border
+                border-slate-200
+                rounded-xl
+                p-5
+              "
+            >
+
+              <p className="text-xs text-slate-400">
+                Training Schedule
+              </p>
+
+              <p className="text-sm font-semibold text-slate-800 mt-2">
+                {formatDays(viewBatch.trainingDays)}
+              </p>
+
+              <p className="text-xs text-slate-500 mt-2">
+                {formatTiming(viewBatch)}
+              </p>
+
+            </div>
+
+
+            {/* CAPACITY */}
+
+            <div
+              className="
+                bg-slate-50
+                border
+                border-slate-200
+                rounded-xl
+                p-5
+              "
+            >
+
+              <p className="text-xs text-slate-400">
+                Player Capacity
+              </p>
+
+              <p className="text-2xl font-bold text-slate-800 mt-2">
+                {viewBatch.capacity ?? "-"}
+              </p>
+
+              <p className="text-xs text-slate-500">
+                Maximum players
+              </p>
 
             </div>
 
           </div>
 
         </div>
-      )}
+
+      </div>
+
+
+      {/* ==================================================
+          FOOTER
+      ================================================== */}
+
+      <div
+        className="
+          px-7
+          py-4
+          border-t
+          border-slate-200
+          bg-slate-50
+          flex
+          justify-end
+          shrink-0
+        "
+      >
+
+        <button
+          type="button"
+          onClick={() =>
+            setViewBatch(null)
+          }
+          className="
+            px-6
+            py-2.5
+            rounded-xl
+            bg-slate-800
+            text-white
+            text-sm
+            font-semibold
+            hover:bg-slate-900
+            transition
+          "
+        >
+          Close
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+)}
+
+
+
+
+
+
+
+
+
+
+
 
     </div>
   );

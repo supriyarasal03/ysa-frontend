@@ -69,26 +69,26 @@ const ReceptionistAttendanceService = {
 
 
 
-// ==========================================================
-// ADMIN - GET TODAY'S ATTENDANCE OF ALL STAFF
-// ==========================================================
+  // ==========================================================
+  // ADMIN - GET TODAY'S ATTENDANCE OF ALL STAFF
+  // ==========================================================
 
-getAdminTodayStaffAttendance: async () => {
-  const res = await axiosClient.get(
-    "/employee-attendance/admin/today"
-  );
+  getAdminTodayStaffAttendance: async () => {
+    const res = await axiosClient.get(
+      "/employee-attendance/admin/today"
+    );
 
-  return res.data;
-},
+    return res.data;
+  },
 
-getAdminStaffAttendanceHistory: async (
-  userId
-) => {
-  const res = await axiosClient.get(
-    `/employee-attendance/admin/staff/${userId}/history`
-  );
-  return res.data;
-},
+  getAdminStaffAttendanceHistory: async (
+    userId
+  ) => {
+    const res = await axiosClient.get(
+      `/employee-attendance/admin/staff/${userId}/history`
+    );
+    return res.data;
+  },
 
 
 
