@@ -16,6 +16,9 @@ import HomePage from "./Pages/public/HomePage";
 
 import AllSports from "./Pages/public/AllSports";
 
+import PlayerEnquiry from "./Pages/public/PlayerEnquiry";
+
+
 // Auth
 import Login from "./Pages/auth/Login";
 import ForgotPassword from "./Pages/auth/ForgotPassword";
@@ -84,6 +87,11 @@ import ParentLayout from "./components/layout/ParentLayout";
 import ParentManagement from "./Pages/parent/ParentManagement";
 import PlayerLayout from "./components/layout/PlayerLayout";
 import PlayerSelfAttendance from "./Pages/player-dashboard/playerSelfAttendance";
+import LandingPageSportsForm from "./Pages/adminLandingP.Managment/LandingPageSportsForm";
+import LandingPageSports from "./Pages/adminLandingP.Managment/LandingPageSports";
+import PlayerEnquiries from "./Pages/receptionist/PlayerEnquiries";
+import LandingPageGallery from "./Pages/adminLandingP.Managment/LandingPageGallery";
+import ContactEnquiries from "./Pages/receptionist/ContactEnquiries";
 
 function App() {
   return (
@@ -94,6 +102,11 @@ function App() {
         <Route path="/home" element={<HomePage />} />
 
         <Route path="/sports" element={<AllSports />} />
+        
+        
+        
+  <Route path="/player-enquiry" element={<PlayerEnquiry />} />;
+     
 
         {/* AUTH */}
         <Route path="/login" element={<Login />} />
@@ -111,6 +124,10 @@ function App() {
           <Route path="/admin" element={<AdminDashboar />} />
 
           <Route path="/admin/staff-attendance" element={<StaffAttendance />} />
+
+          <Route path="/admin/manage-gallery" element={<LandingPageGallery/>}/>
+
+         
 
           <Route path="/admin/leave-requests" element={<LeaveRequests />} />
 
@@ -134,6 +151,12 @@ function App() {
           <Route path="/admin/batch-managmnet" element={<BatchManagment />} />
           <Route path="/batch-form" element={<BatchForm />} />
           <Route path="/batch-form/:id" element={<BatchForm />} />
+
+
+           
+           <Route path="/admin/add-sports" element={<LandingPageSportsForm/>} />
+           <Route path="/admin/landingPage-Sports" element={<LandingPageSports/>} />
+
 
         </Route>
 
@@ -214,6 +237,11 @@ function App() {
           <Route path="/receptionist/dashboard" element={<ReceptionistDashboard />} />
 
           <Route path="/receptionist/leave" element={<LeaveRequest />} />
+
+          <Route path="/receptionist/player-enquiries" element={<PlayerEnquiries/>} />
+
+
+           <Route path="/receptionist/ContactEnquiries" element={<ContactEnquiries/>}  /> 
 
 
 

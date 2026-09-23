@@ -1,17 +1,20 @@
-import React, { useEffect, useState } from "react";
+import React, {
+  useEffect,
+  useState,
+} from "react";
+
 import {
   LayoutDashboard,
   Users,
   Trophy,
   UserRoundCog,
-   ClipboardCheck,
-    Calendar,
+  ClipboardCheck,
+  Calendar,
   Package,
   LogOut,
   Menu,
-  X,
- 
 } from "lucide-react";
+
 import {
   NavLink,
   Outlet,
@@ -21,12 +24,10 @@ import {
 import axiosClient from "../../api/axiosClient";
 
 
-
 const AdminLayout = () => {
 
   const [sidebarOpen, setSidebarOpen] =
-    React.useState(true);
-
+    useState(true);
 
   const [adminName, setAdminName] =
     useState("");
@@ -43,7 +44,9 @@ const AdminLayout = () => {
     try {
 
       const response =
-        await axiosClient.get("/admin/profile");
+        await axiosClient.get(
+          "/admin/profile"
+        );
 
       const firstName =
         response?.data?.firstName || "";
@@ -67,21 +70,11 @@ const AdminLayout = () => {
   };
 
 
-
-
-
-
-
-
   useEffect(() => {
+
     loadAdminProfile();
+
   }, []);
-
-
-
-
-
-
 
 
   // ==========================================================
@@ -102,23 +95,25 @@ const AdminLayout = () => {
   // ==========================================================
 
   const navigationItems = [
+
     {
       name: "Dashboard",
       path: "/admin",
       icon: LayoutDashboard,
     },
+
     {
       name: "Staff Managment",
       path: "/admin/staff-management",
       icon: Users,
     },
+
     {
       name: "Sports Managment",
       path: "/admin/sport-management",
       icon: Trophy,
     },
-    
-    
+
     {
       name: "Coach Managment",
       path: "/admin/coach-managmnet",
@@ -131,37 +126,30 @@ const AdminLayout = () => {
       icon: Package,
     },
 
-
+    {
+      name: "Staff Attendance",
+      path: "/admin/receptionist-attendance",
+      icon: ClipboardCheck,
+    },
 
     {
-  name: "Staff Attendance",
-  path: "/admin/receptionist-attendance",
-  icon: ClipboardCheck,
-},
+      name: "Leave Requests",
+      path: "/admin/leave-requests",
+      icon: Calendar,
+    },
 
+    {
+      name: "Add sport",
+      path: "/admin/landingPage-Sports",
+      icon: Calendar,
+    },
 
+    {
+      name: "Manage Gallery",
+      path: "/admin/manage-gallery",
+      icon: Calendar,
+    },
 
-
-
-
-{
-  name:"Leave Requests",
-
-  path:"/admin/leave-requests",
-  icon:Calendar,
-
-}
-
-
-
-
-
-
-
-   
-
-
-    
   ];
 
 
@@ -185,48 +173,85 @@ const AdminLayout = () => {
 
       <aside
         style={{
-          width: sidebarOpen ? "270px" : "80px",
+          width: sidebarOpen
+            ? "270px"
+            : "80px",
+
           background: "#0d172c",
+
           color: "#fff",
-          minHeight: "100vh",
-          transition: "width 0.2s ease",
+
+          height: "100vh",
+
+          transition:
+            "width 0.2s ease",
+
           display: "flex",
+
           flexDirection: "column",
+
           position: "fixed",
+
           left: 0,
+
           top: 0,
+
           bottom: 0,
+
           zIndex: 1000,
+
+          overflow: "hidden",
         }}
       >
 
-        {/* LOGO */}
+
+        {/* ===================================================
+            LOGO
+        =================================================== */}
 
         <div
           style={{
             padding: "28px 24px",
+
             display: "flex",
+
             alignItems: "center",
+
             gap: "14px",
-            borderBottom: "1px solid rgba(255,255,255,0.08)",
+
+            borderBottom:
+              "1px solid rgba(255,255,255,0.08)",
+
+            flexShrink: 0,
           }}
         >
 
           <div
             style={{
               width: "48px",
+
               height: "48px",
+
               borderRadius: "12px",
+
               background: "#2864e8",
+
               display: "flex",
+
               alignItems: "center",
+
               justifyContent: "center",
+
               fontSize: "24px",
+
               fontWeight: "700",
+
               flexShrink: 0,
             }}
           >
+
             Y
+
           </div>
 
 
@@ -240,8 +265,11 @@ const AdminLayout = () => {
                   fontWeight: "600",
                 }}
               >
+
                 Yashashree Sports
+
               </div>
+
 
               <div
                 style={{
@@ -250,7 +278,10 @@ const AdminLayout = () => {
                   marginTop: "4px",
                 }}
               >
-                {adminName || "Admin Panel"}
+
+                {adminName ||
+                  "Admin Panel"}
+
               </div>
 
             </div>
@@ -260,99 +291,167 @@ const AdminLayout = () => {
         </div>
 
 
-        {/* ATTENDANCE BUTTON */}
-
-
-
-        
-
-
-
-
-
-
-
-
-        {/* SIDEBAR MENU */}
+        {/* ===================================================
+            SIDEBAR MENU
+        =================================================== */}
 
         <nav
           style={{
             padding: "24px 16px",
+
             flex: 1,
+
+            /*
+             * IMPORTANT FIX
+             *
+             * Allows this area to shrink
+             * inside the sidebar.
+             */
+            minHeight: 0,
+
+            /*
+             * Menu scrolls when there
+             * are more items than screen height.
+             */
+            overflowY: "auto",
+
+            overflowX: "hidden",
+
+            /*
+             * Keeps scrollbar subtle.
+             */
+            scrollbarWidth: "thin",
           }}
         >
+
+          {/* MENU TITLE */}
 
           <div
             style={{
               color: "#7184a3",
+
               fontSize: "12px",
+
               marginBottom: "14px",
-              paddingLeft: sidebarOpen
-                ? "20px"
-                : "0",
-              textAlign: sidebarOpen
-                ? "left"
-                : "center",
+
+              paddingLeft:
+                sidebarOpen
+                  ? "20px"
+                  : "0",
+
+              textAlign:
+                sidebarOpen
+                  ? "left"
+                  : "center",
             }}
           >
-            {sidebarOpen ? "OVERVIEW" : "•••"}
+
+            {sidebarOpen
+              ? "OVERVIEW"
+              : "•••"}
+
           </div>
 
 
-          {navigationItems.map((item) => {
+          {/* =================================================
+              NAVIGATION ITEMS
+          ================================================= */}
 
-            const Icon = item.icon;
+          {navigationItems.map(
+            (item) => {
 
-            return (
+              const Icon =
+                item.icon;
 
-              <NavLink
-                key={item.path}
-                to={item.path}
-                end={item.path === "/admin"}
-                style={({ isActive }) => ({
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: sidebarOpen
-                    ? "flex-start"
-                    : "center",
-                  gap: "14px",
-                  padding: "14px 18px",
-                  marginBottom: "7px",
-                  borderRadius: "10px",
-                  textDecoration: "none",
-                  color: isActive
-                    ? "#fff"
-                    : "#c4d0e2",
-                  background: isActive
-                    ? "#2864e8"
-                    : "transparent",
-                  fontSize: "15px",
-                  fontWeight: isActive
-                    ? "600"
-                    : "500",
-                })}
-              >
+              return (
 
-                <Icon size={21} />
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  end={
+                    item.path === "/admin"
+                  }
+                  style={({
+                    isActive,
+                  }) => ({
 
-                {sidebarOpen && item.name}
+                    display: "flex",
 
-              </NavLink>
+                    alignItems: "center",
 
-            );
+                    justifyContent:
+                      sidebarOpen
+                        ? "flex-start"
+                        : "center",
 
-          })}
+                    gap: "14px",
+
+                    padding: "14px 18px",
+
+                    marginBottom: "7px",
+
+                    borderRadius: "10px",
+
+                    textDecoration:
+                      "none",
+
+                    color: isActive
+                      ? "#fff"
+                      : "#c4d0e2",
+
+                    background:
+                      isActive
+                        ? "#2864e8"
+                        : "transparent",
+
+                    fontSize: "15px",
+
+                    fontWeight:
+                      isActive
+                        ? "600"
+                        : "500",
+
+                    flexShrink: 0,
+
+                  })}
+                >
+
+                  <Icon size={21} />
+
+                  {sidebarOpen &&
+                    item.name}
+
+                </NavLink>
+
+              );
+
+            }
+          )}
 
         </nav>
 
 
-        {/* LOGOUT */}
+        {/* ===================================================
+            LOGOUT
+        =================================================== */}
 
         <div
           style={{
-            padding: "18px 16px 24px",
+            padding:
+              "18px 16px 24px",
+
             borderTop:
               "1px solid rgba(255,255,255,0.08)",
+
+            /*
+             * VERY IMPORTANT
+             *
+             * Prevent logout from being
+             * pushed away by menu.
+             */
+            flexShrink: 0,
+
+            background: "#0d172c",
           }}
         >
 
@@ -361,26 +460,57 @@ const AdminLayout = () => {
             onClick={handleLogout}
             style={{
               width: "100%",
+
               border: "none",
+
               borderRadius: "10px",
+
               padding: "14px",
+
               background: "#1d2a40",
+
               color: "#fff",
+
               cursor: "pointer",
+
               display: "flex",
+
               alignItems: "center",
-              justifyContent: sidebarOpen
-                ? "flex-start"
-                : "center",
+
+              justifyContent:
+                sidebarOpen
+                  ? "flex-start"
+                  : "center",
+
               gap: "12px",
+
               fontSize: "15px",
+
               fontWeight: "500",
+
+              transition:
+                "background 0.2s ease",
+            }}
+
+            onMouseEnter={(event) => {
+
+              event.currentTarget.style.background =
+                "#263750";
+
+            }}
+
+            onMouseLeave={(event) => {
+
+              event.currentTarget.style.background =
+                "#1d2a40";
+
             }}
           >
 
             <LogOut size={20} />
 
-            {sidebarOpen && "Logout"}
+            {sidebarOpen &&
+              "Logout"}
 
           </button>
 
@@ -395,26 +525,41 @@ const AdminLayout = () => {
 
       <main
         style={{
-          marginLeft: sidebarOpen
-            ? "270px"
-            : "80px",
+          marginLeft:
+            sidebarOpen
+              ? "270px"
+              : "80px",
+
           width: "100%",
+
           minHeight: "100vh",
-          transition: "margin-left 0.2s ease",
+
+          transition:
+            "margin-left 0.2s ease",
         }}
       >
 
-        {/* HEADER */}
+        {/* ===================================================
+            HEADER
+        =================================================== */}
 
         <header
           style={{
             height: "82px",
+
             background: "#fff",
-            borderBottom: "1px solid #e8edf3",
+
+            borderBottom:
+              "1px solid #e8edf3",
+
             display: "flex",
+
             alignItems: "center",
+
             padding: "0 30px",
+
             boxSizing: "border-box",
+
             gap: "18px",
           }}
         >
@@ -423,20 +568,34 @@ const AdminLayout = () => {
             type="button"
             onClick={() =>
               setSidebarOpen(
-                (previous) => !previous
+                (previous) =>
+                  !previous
               )
             }
             style={{
               border: "none",
-              background: "transparent",
+
+              background:
+                "transparent",
+
               cursor: "pointer",
+
               padding: "8px",
+
               display: "flex",
+
               alignItems: "center",
-              justifyContent: "center",
+
+              justifyContent:
+                "center",
             }}
           >
-            <Menu size={23} color="#596b84" />
+
+            <Menu
+              size={23}
+              color="#596b84"
+            />
+
           </button>
 
 
@@ -445,22 +604,37 @@ const AdminLayout = () => {
             <h2
               style={{
                 margin: 0,
+
                 color: "#07152f",
+
                 fontSize: "30px",
+
                 fontWeight: "600",
               }}
             >
-              Welcome, {adminName || "Admin"}
+
+              Welcome,{" "}
+
+              {adminName ||
+                "Admin"}
+
             </h2>
+
 
             <p
               style={{
-                margin: "5px 0 0",
+                margin:
+                  "5px 0 0",
+
                 color: "#71849e",
+
                 fontSize: "14px",
               }}
             >
-              Manage Yashree Sports Academy
+
+              Manage Yashree Sports
+              Academy
+
             </p>
 
           </div>
@@ -468,14 +642,18 @@ const AdminLayout = () => {
         </header>
 
 
-        {/* PAGE */}
+        {/* ===================================================
+            PAGE CONTENT
+        =================================================== */}
 
         <Outlet />
 
       </main>
 
     </div>
+
   );
+
 };
 
 

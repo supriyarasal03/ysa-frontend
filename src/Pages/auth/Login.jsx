@@ -47,7 +47,8 @@ const Login = () => {
 
         else if (role === "COACH") navigate("/coach/player-attendance");
 
-        else if (role === "RECEPTIONIST") navigate("/receptionist");
+        else if (role === "RECEPTIONIST") navigate("/receptionist/players");
+
         else if (role === "INVENTORY_MANAGER") navigate("/innventory-manager");
         else if (role === "CLEANING_STAFF") navigate("cleaningStaff");
         else if (role === "PLAYER") navigate("/player/attendance");

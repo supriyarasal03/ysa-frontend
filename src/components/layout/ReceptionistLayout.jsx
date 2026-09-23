@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
-
 import {
   LayoutDashboard,
   Users,
@@ -10,8 +9,9 @@ import {
   Menu,
   Bell,
   Clock,
+  UserPlus,
+  Mail,
 } from "lucide-react";
-
 import ReceptionistAttendanceService from "../../Pages/receptionist/ReceptionistAttendanceService";
 
 
@@ -38,11 +38,6 @@ const ReceptionistLayout = () => {
 
   const navItems = [
 
-    {
-      name: "Dashboard",
-      path: "/receptionist",
-      icon: LayoutDashboard,
-    },
 
     {
       name: "Players",
@@ -61,8 +56,22 @@ const ReceptionistLayout = () => {
   name: "Leave",
   path: "/receptionist/leave",
   icon: Calendar,
-}
-   
+},
+
+
+{
+  name: "Player Enquiries",
+  path: "/receptionist/player-enquiries",
+  icon: UserPlus,
+},
+
+
+
+{
+  name: "Contact Enquiries",
+  path: "/receptionist/contact-enquiries",
+  icon: Mail,
+},
 
   ];
 
